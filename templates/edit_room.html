@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+  <div class="col-md-6 mx-auto">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Modifier le local</h5>
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label">Nom du local *</label>
+            <input class="form-control" name="name" value="{{ room['name'] }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Nombre de bancs *</label>
+            <input class="form-control" name="benches" type="number" min="1" value="{{ room['benches'] }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Étudiants par banc *</label>
+            <input class="form-control" name="per_bench" type="number" min="1" value="{{ room['students_per_bench'] }}" required>
+          </div>
+          <div class="mb-3">
+            <small class="text-muted">Capacité totale : <strong>{{ room['benches'] * room['students_per_bench'] }}</strong> étudiants</small>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
+            <a href="{{ url_for('rooms') }}" class="btn btn-secondary">Annuler</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+
+

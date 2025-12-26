@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <h5 class="card-title">Créer une nouvelle promotion</h5>
+    <form method="post">
+      <div class="row">
+        <div class="col-md-6">
+          <input type="text" class="form-control" name="name" placeholder="Nom de la promotion" required>
+        </div>
+        <div class="col-md-6">
+          <button type="submit" class="btn btn-primary">Créer</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h5 class="card-title">Liste des promotions</h5>
+    {% if promotions %}
+    <div class="table-responsive">
+      <table class="table table-striped" style="line-height: 1.2;">
+        <thead>
+          <tr>
+            <th style="padding: 6px 8px;">ID</th>
+            <th style="padding: 6px 8px;">Nom</th>
+            <th style="padding: 6px 8px;">Nombre d'étudiants</th>
+            <th style="padding: 6px 8px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for promo in promotions %}
+          <tr style="line-height: 1.2;">
+            <td style="padding: 6px 8px;">{{ promo.id }}</td>
+            <td style="padding: 6px 8px;">
+              <a href="{{ url_for('promotion_students', promotion_id=promo.id) }}" style="text-decoration: none; color: #0d6efd; font-weight: 500;">
+                {{ promo.name }}
+              </a>
+            </td>
+            <td style="padding: 6px 8px;">
+              <span class="badge bg-info">{{ promo.student_count }} étudiant{% if promo.student_count > 1 %}s{% endif %}</span>
+            </td>
+            <td style="padding: 6px 8px;">
+              <a class="btn btn-sm btn-outline-warning" href="{{ url_for('edit_promotion', promotion_id=promo.id) }}">Modifier</a>
+              <a class="btn btn-sm btn-outline-danger delete-promotion-btn" href="{{ url_for('delete_promotion', promotion_id=promo.id) }}" 
+                 data-promotion-name="{{ promo.name }}">Supprimer</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-muted">Aucune promotion créée pour le moment.</p>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gérer la confirmation de suppression de promotion
+    var deleteButtons = document.querySelectorAll('.delete-promotion-btn');
+    deleteButtons.forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            var promotionName = this.getAttribute('data-promotion-name');
+            if (!confirm('Êtes-vous sûr de vouloir supprimer la promotion « ' + promotionName + ' » ?')) {
+                e.preventDefault();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
+

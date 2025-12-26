@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="print-header" style="display: none;">
+  <div class="d-flex align-items-center justify-content-center mb-3">
+    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" style="height: 60px; margin-right: 15px;">
+    <div class="text-center">
+      <h4 class="mb-0">ISTA GOMBE-MATADI</h4>
+      <p class="mb-0"><strong>Liste d'appel - {{ room_name }}</strong></p>
+      <p class="mb-0"><small>Session: {{ exam['label'] }} | Période: {{ exam['session_type'] or 'Non définie' }}</small></p>
+    </div>
+  </div>
+</div>
+<div class="mb-3">
+  <div class="d-flex justify-content-between align-items-center">
+    <div>
+      <h5>Liste d'appel - {{ room_name }}</h5>
+      <p class="text-muted mb-0">
+        <strong>Session:</strong> {{ exam['label'] }} | 
+        <strong>Période:</strong> 
+        {% if exam['session_type'] == 'Matin' %}
+          <span class="badge bg-info text-dark">Matin</span>
+        {% elif exam['session_type'] == 'Après-midi' %}
+          <span class="badge bg-warning text-dark">Après-midi</span>
+        {% else %}
+          {{ exam['session_type'] or 'Non définie' }}
+        {% endif %}
+      </p>
+    </div>
+    <button class="btn btn-outline-secondary" onclick="window.print()">Imprimer</button>
+  </div>
+</div>
+<style>
+@media print {
+  nav, .btn, .alert, footer { display: none !important; }
+  body { 
+    background: white;
+    margin: 0;
+    padding: 10mm;
+  }
+  
+  table { 
+    page-break-inside: auto;
+    width: 100%;
+    border-collapse: collapse;
+    border: 2px solid #000 !important;
+    font-size: 11px;
+    margin: 0 auto;
+  }
+  
+  table th, table td {
+    border: 1px solid #000 !important;
+    padding: 6px !important;
+    text-align: left;
+    vertical-align: middle;
+  }
+  
+  table thead th {
+    background-color: #f0f0f0 !important;
+    font-weight: bold;
+    border: 2px solid #000 !important;
+    text-align: center;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  table tbody tr {
+    border-top: 1px solid #000 !important;
+    border-bottom: 1px solid #000 !important;
+    border-left: 1px solid #000 !important;
+    border-right: 1px solid #000 !important;
+  }
+  
+  table tbody td {
+    border: 1px solid #000 !important;
+  }
+  
+  table tbody tr td:first-child {
+    border-left: 2px solid #000 !important;
+  }
+  
+  table tbody tr td:last-child {
+    border-right: 2px solid #000 !important;
+  }
+  
+  table tbody tr:first-child td {
+    border-top: 2px solid #000 !important;
+  }
+  
+  table tbody tr:last-child td {
+    border-bottom: 2px solid #000 !important;
+  }
+  
+  tr { 
+    page-break-inside: avoid; 
+    page-break-after: auto; 
+  }
+  
+  thead { 
+    display: table-header-group; 
+  }
+  
+  tfoot { 
+    display: table-footer-group; 
+  }
+  
+  .print-header { 
+    display: block !important; 
+    margin-bottom: 15px;
+  }
+  
+  .d-flex.justify-content-between { 
+    display: none !important; 
+  }
+  
+  .print-footer { 
+    display: block !important; 
+    position: fixed; 
+    bottom: 0; 
+    left: 0; 
+    right: 0; 
+    text-align: center; 
+    font-size: 10px; 
+    color: #666; 
+    padding: 10px; 
+  }
+}
+</style>
+<table class="table table-bordered table-sm" style="border: 2px solid #000;">
+  <thead class="table-light" style="background-color: #f0f0f0;">
+    <tr>
+      <th style="border: 2px solid #000; padding: 6px; text-align: center; font-weight: bold;">Place</th>
+      <th style="border: 2px solid #000; padding: 6px; text-align: center; font-weight: bold;">Nom</th>
+      <th style="border: 2px solid #000; padding: 6px; text-align: center; font-weight: bold;">Promotion</th>
+      <th style="border: 2px solid #000; padding: 6px; text-align: center; font-weight: bold;">Matricule</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in rows %}
+      <tr>
+        <td style="border: 1px solid #000; padding: 6px; text-align: center; font-weight: bold;">{{ r['seat_number'] }}</td>
+        <td style="border: 1px solid #000; padding: 6px;">{{ r['full_name'] }}</td>
+        <td style="border: 1px solid #000; padding: 6px;">{{ r['promotion_name'] }}</td>
+        <td style="border: 1px solid #000; padding: 6px;">{{ r['matricule'] or '-' }}</td>
+      </tr>
+    {% else %}
+      <tr>
+        <td colspan="4" class="text-center text-muted" style="border: 1px solid #000; padding: 10px;">Aucune donnée.</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<div class="print-footer" style="display: none;">
+  <small>&copy; Décembre 2025 ISTA GOMBE-MATADI - JNC_DispaExam - Version 1.1</small>
+</div>
+{% endblock %}
+

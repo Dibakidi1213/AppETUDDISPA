@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h5 class="card-title">Affecter les étudiants aux locaux</h5>
+    <form method="post" class="row g-3 align-items-end" id="dispatch-form">
+      <div class="col-md-4">
+        <label class="form-label">Filtrer par promotion (optionnel)</label>
+        <select class="form-select" name="promotion_id" onchange="this.form.submit()">
+          <option value="">Toutes les promotions</option>
+          {% for promo in promotions %}
+          <option value="{{ promo.id }}" {% if request.args.get('promotion_id') == promo.id|string %}selected{% endif %}>
+            {{ promo.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-5">
+        <label class="form-label">Sélectionner l'examen *</label>
+        <select class="form-select" name="exam_id" id="exam-selector" required onchange="updatePromotionFields()">
+          <option value="">-- Choisir un examen --</option>
+          {% for exam in exams %}
+            <option value="{{ exam['id'] }}" {% if selected_exam and exam['id']==selected_exam['id'] %}selected{% endif %}>
+              {{ exam['label'] }} 
+              ({{ exam['session_type'] or 'Non définie' }}) 
+              - {{ exam['promotion_name'] or 'Non définie' }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <button type="submit" class="btn btn-primary w-100">Lancer la répartition</button>
+      </div>
+      {% if selected_exam and exam_promotions %}
+      <div class="col-12 mt-3">
+        <div class="card bg-light">
+          <div class="card-body">
+            <h6 class="card-title">Nombre d'étudiants par promotion (optionnel)</h6>
+            <p class="text-muted small mb-3">Laissez vide pour prendre tous les étudiants. Sinon, spécifiez le nombre à prendre de chaque promotion. Les étudiants seront mélangés équitablement dans les locaux.</p>
+            <div class="row g-2" id="promotion-fields">
+              {% for promo in exam_promotions %}
+              <div class="col-md-4">
+                <label class="form-label small">{{ promo.name }}</label>
+                <input type="number" class="form-control form-control-sm" 
+                       name="promo_count_{{ promo.id }}" 
+                       min="0" 
+                       placeholder="Tous" 
+                       value="{{ request.form.get('promo_count_' + promo.id|string, '') }}">
+                <small class="text-muted">Laissez vide pour tous</small>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </form>
+    {% if selected_exam %}
+    <div class="alert alert-info mt-3">
+      <strong>Session sélectionnée :</strong><br>
+      <strong>Nom:</strong> {{ selected_exam['label'] }}<br>
+      <strong>Période:</strong> 
+        {% if selected_exam['session_type'] == 'Matin' %}
+          <span class="badge bg-info text-dark">Matin</span>
+        {% elif selected_exam['session_type'] == 'Après-midi' %}
+          <span class="badge bg-warning text-dark">Après-midi</span>
+        {% else %}
+          {{ selected_exam['session_type'] or 'Non définie' }}
+        {% endif %}<br>
+      <strong>Promotions:</strong> {{ selected_exam['promotion_name'] or 'Non définie' }}
+    </div>
+    {% endif %}
+    {% if result %}
+      <div class="alert alert-success mt-3">
+        <strong>Affectation terminée !</strong><br>
+        Étudiants affectés : {{ result.assigned }} / Locaux utilisés : {{ result.rooms }}.
+      </div>
+    {% endif %}
+  </div>
+</div>
+<div class="card shadow-sm mt-4">
+  <div class="card-body">
+    <h6 class="card-title">Après l'affectation</h6>
+    <p class="mb-0">Consultez les <a href="{{ url_for('rooms') }}">locaux</a> pour imprimer les badges et listes d'appel par local.</p>
+  </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+  <div class="col-md-5">
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h5 class="card-title">Créer un nouvel utilisateur</h5>
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label">Nom d'utilisateur *</label>
+            <input class="form-control" name="username" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Mot de passe *</label>
+            <input type="password" class="form-control" name="password" required>
+          </div>
+          <div class="mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="is_admin" value="1" id="is_admin">
+              <label class="form-check-label" for="is_admin">
+                Administrateur
+              </label>
+            </div>
+            <small class="text-muted">Les administrateurs peuvent créer des utilisateurs et réinitialiser les données.</small>
+          </div>
+          <button class="btn btn-primary">Créer l'utilisateur</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Liste des utilisateurs</h5>
+        {% if users %}
+        <div class="table-responsive">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Nom d'utilisateur</th>
+                <th>Rôle</th>
+                <th>Créé le</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for user in users %}
+              <tr>
+                <td>{{ user['username'] }}</td>
+                <td>
+                  {% if user['is_admin'] %}
+                    <span class="badge bg-danger">Administrateur</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Utilisateur</span>
+                  {% endif %}
+                </td>
+                <td>{{ user['created_at'] or '-' }}</td>
+                <td>
+                  {% if user['id'] != session.get('user_id') %}
+                    <a class="btn btn-sm btn-outline-danger delete-user-btn" href="{{ url_for('delete_user', user_id=user['id']) }}" 
+                       data-username="{{ user['username'] }}">Supprimer</a>
+                  {% else %}
+                    <span class="text-muted">Compte actuel</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-muted">Aucun utilisateur.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var deleteButtons = document.querySelectorAll('.delete-user-btn');
+    deleteButtons.forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            var username = this.getAttribute('data-username');
+            if (!confirm('Êtes-vous sûr de vouloir supprimer l\'utilisateur « ' + username + ' » ?')) {
+                e.preventDefault();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
+
+

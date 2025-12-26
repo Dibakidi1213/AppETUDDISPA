@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+  <div class="col-md-8 mx-auto">
+    <div class="card shadow-sm border-danger">
+      <div class="card-body">
+        <h5 class="card-title text-danger">⚠️ Réinitialisation de la base de données</h5>
+        <div class="alert alert-danger">
+          <strong>Attention !</strong> Cette action est irréversible et supprimera :
+          <ul class="mb-0 mt-2">
+            <li>Tous les étudiants</li>
+            <li>Toutes les promotions</li>
+            <li>Toutes les sections</li>
+            <li>Tous les examens/sessions</li>
+            <li>Toutes les affectations</li>
+            <li>Toutes les présences</li>
+          </ul>
+          <p class="mb-0 mt-2"><strong>Les locaux seront conservés.</strong></p>
+        </div>
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label">Pour confirmer, tapez <strong>RESET</strong> :</label>
+            <input class="form-control" name="confirm" type="text" placeholder="RESET" required>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-danger">Réinitialiser la base de données</button>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">Annuler</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+
+
