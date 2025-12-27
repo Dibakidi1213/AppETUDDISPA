@@ -224,6 +224,41 @@ def init_db():
         print(f"Migration users warning: {e}")
         pass
     
+    # Migration: créer la table assignment_archives pour archiver les affectations
+    try:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS assignment_archives (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                archive_name TEXT NOT NULL,
+                exam_id INTEGER NOT NULL,
+                exam_label TEXT NOT NULL,
+                exam_session_type TEXT,
+                period_start_date TEXT NOT NULL,
+                period_end_date TEXT NOT NULL,
+                student_id INTEGER NOT NULL,
+                student_matricule TEXT,
+                student_full_name TEXT NOT NULL,
+                student_promotion_id INTEGER,
+                student_promotion_name TEXT,
+                student_section_id INTEGER,
+                student_section_name TEXT,
+                room_id INTEGER NOT NULL,
+                room_name TEXT NOT NULL,
+                seat_number INTEGER NOT NULL,
+                qr_token TEXT,
+                archived_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                archived_by INTEGER,
+                FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE SET NULL,
+                FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE SET NULL,
+                FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE SET NULL,
+                FOREIGN KEY (archived_by) REFERENCES users(id) ON DELETE SET NULL
+            )
+        """)
+        conn.commit()
+    except sqlite3.OperationalError as e:
+        print(f"Migration assignment_archives warning: {e}")
+        pass
+    
     conn.commit()
     conn.close()
 

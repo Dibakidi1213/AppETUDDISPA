@@ -70,6 +70,9 @@
                     <ul class="dropdown-menu">
                         <li><a class="dropdown-item" href="{{ url_for('manage_users') }}">Gérer les utilisateurs</a></li>
                         <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('archive_assignments') }}">Archiver les affectations</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('view_archives') }}">Consulter les archives</a></li>
+                        <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item text-danger" href="{{ url_for('reset_data') }}">Réinitialiser les données</a></li>
                     </ul>
                 </li>

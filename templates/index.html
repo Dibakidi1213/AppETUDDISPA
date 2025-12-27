@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+  }
+  .stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  }
+  .stat-value {
+    font-size: 3rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+  .stat-label {
+    font-size: 1rem;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .welcome-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px;
+    padding: 30px;
+    margin-bottom: 30px;
+  }
+  .quick-links {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .quick-link-card {
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s;
+    background: white;
+  }
+  .quick-link-card:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.2);
+    transform: translateY(-3px);
+  }
+  .quick-link-card a {
+    text-decoration: none;
+    color: #333;
+  }
+  .quick-link-card:hover a {
+    color: #667eea;
+  }
+  .icon-large {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+  }
+</style>
+
+<div class="welcome-section">
+  <h2 class="mb-2">👋 Bienvenue, {{ username }} !</h2>
+  <p class="mb-0">Tableau de bord - ISTA GOMBE-MATADI - JNC_DispaExam</p>
+</div>
+
+<!-- Statistiques principales -->
+<div class="row mb-4">
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="stat-value">{{ stats.total_promotions }}</div>
+      <div class="stat-label">📚 Promotions</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+      <div class="stat-value">{{ stats.total_students }}</div>
+      <div class="stat-label">👥 Étudiants</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+      <div class="stat-value">{{ stats.total_sections }}</div>
+      <div class="stat-label">📋 Sections</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+      <div class="stat-value">{{ stats.total_exams }}</div>
+      <div class="stat-label">📝 Examens</div>
+    </div>
+  </div>
+</div>
+
+<!-- Statistiques secondaires -->
+<div class="row mb-4">
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-body text-center">
+        <h5 class="card-title">Répartition par sexe</h5>
+        <div class="row mt-3">
+          <div class="col-6">
+            <div class="p-3 bg-primary text-white rounded">
+              <strong style="font-size: 2rem;">{{ stats.male_count }}</strong><br>
+              <small>👨 Masculin</small>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="p-3 bg-danger text-white rounded">
+              <strong style="font-size: 2rem;">{{ stats.female_count }}</strong><br>
+              <small>👩 Féminin</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-body text-center">
+        <h5 class="card-title">Locaux</h5>
+        <div class="mt-3">
+          <div class="p-3 bg-info text-white rounded">
+            <strong style="font-size: 2rem;">{{ stats.total_rooms }}</strong><br>
+            <small>Locaux configurés</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-body text-center">
+        <h5 class="card-title">Affectations & Présences</h5>
+        <div class="row mt-3">
+          <div class="col-6">
+            <div class="p-3 bg-warning text-dark rounded">
+              <strong style="font-size: 1.5rem;">{{ stats.total_assignments }}</strong><br>
+              <small>Affectations</small>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="p-3 bg-success text-white rounded">
+              <strong style="font-size: 1.5rem;">{{ stats.total_present }}</strong><br>
+              <small>Présents</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Liens rapides -->
+<div class="quick-links">
+  <h5 class="mb-3">🔗 Accès rapide</h5>
+  <div class="row g-3">
+    <div class="col-md-3">
+      <div class="quick-link-card">
+        <div class="icon-large">📚</div>
+        <a href="{{ url_for('promotions') }}">
+          <h6>Promotions</h6>
+          <small class="text-muted">Gérer les promotions</small>
+        </a>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="quick-link-card">
+        <div class="icon-large">👥</div>
+        <a href="{{ url_for('upload_students') }}">
+          <h6>Import étudiants</h6>
+          <small class="text-muted">Importer des étudiants</small>
+        </a>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="quick-link-card">
+        <div class="icon-large">🏢</div>
+        <a href="{{ url_for('rooms') }}">
+          <h6>Locaux</h6>
+          <small class="text-muted">Gérer les locaux</small>
+        </a>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="quick-link-card">
+        <div class="icon-large">📝</div>
+        <a href="{{ url_for('exams') }}">
+          <h6>Examens</h6>
+          <small class="text-muted">Créer des examens</small>
+        </a>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="quick-link-card">
+        <div class="icon-large">🎯</div>
+        <a href="{{ url_for('dispatch') }}">
+          <h6>Affectation</h6>
+          <small class="text-muted">Affecter les étudiants</small>
+        </a>
+      </div>
+    </div>
+    {% if session.get('is_admin') %}
+    <div class="col-md-3">
+      <div class="quick-link-card">
+        <div class="icon-large">📦</div>
+        <a href="{{ url_for('archive_assignments') }}">
+          <h6>Archives</h6>
+          <small class="text-muted">Archiver les affectations</small>
+        </a>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="quick-link-card">
+        <div class="icon-large">👤</div>
+        <a href="{{ url_for('manage_users') }}">
+          <h6>Utilisateurs</h6>
+          <small class="text-muted">Gérer les utilisateurs</small>
+        </a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+
+

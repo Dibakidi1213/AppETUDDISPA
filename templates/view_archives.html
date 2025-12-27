@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+  <div class="col-md-12">
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">📚 Archives des affectations</h5>
+          <a href="{{ url_for('archive_assignments') }}" class="btn btn-primary">Nouvelle archive</a>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Filtres -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h6 class="card-subtitle mb-3">Filtres de recherche</h6>
+        <form method="get" class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label">Nom de l'archive</label>
+            <input type="text" class="form-control" name="archive_name" 
+                   value="{{ archive_name_filter }}" placeholder="Rechercher...">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Examen</label>
+            <select class="form-select" name="exam_id">
+              <option value="">Tous</option>
+              {% for exam in exams %}
+              <option value="{{ exam.id }}" {% if exam_id_filter == exam.id|string %}selected{% endif %}>
+                {{ exam.label }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Date début</label>
+            <input type="date" class="form-control" name="period_start" value="{{ period_start_filter }}">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Date fin</label>
+            <input type="date" class="form-control" name="period_end" value="{{ period_end_filter }}">
+          </div>
+          <div class="col-md-3 d-flex align-items-end">
+            <button type="submit" class="btn btn-outline-primary me-2">Filtrer</button>
+            <a href="{{ url_for('view_archives') }}" class="btn btn-outline-secondary">Réinitialiser</a>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Liste des archives -->
+    <div class="card shadow-sm">
+      <div class="card-body">
+        {% if archives %}
+        <div class="table-responsive">
+          <table class="table table-striped table-hover">
+            <thead class="table-dark">
+              <tr>
+                <th>Nom de l'archive</th>
+                <th>Examen</th>
+                <th>Session</th>
+                <th>Période</th>
+                <th>Nombre d'affectations</th>
+                <th>Date d'archivage</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for archive in archives %}
+              <tr>
+                <td><strong>{{ archive.archive_name }}</strong></td>
+                <td>{{ archive.exam_label }}</td>
+                <td>{{ archive.exam_session_type or '-' }}</td>
+                <td>
+                  <small>
+                    {{ archive.period_start_date }}<br>
+                    <span class="text-muted">jusqu'à</span><br>
+                    {{ archive.period_end_date }}
+                  </small>
+                </td>
+                <td><span class="badge bg-primary">{{ archive.assignment_count }}</span></td>
+                <td>
+                  <small>{{ archive.archived_at[:10] if archive.archived_at else '-' }}</small>
+                </td>
+                <td>
+                  <a href="{{ url_for('archive_details', archive_name=archive.archive_name) }}?exam_id={{ archive.exam_id }}&period_start={{ archive.period_start_date }}&period_end={{ archive.period_end_date }}" 
+                     class="btn btn-sm btn-outline-primary">Voir détails</a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+          <h6 class="alert-heading">Aucune archive trouvée</h6>
+          <p class="mb-0">Il n'y a pas encore d'archives correspondant à vos critères de recherche.</p>
+          <hr>
+          <p class="mb-0">
+            <a href="{{ url_for('archive_assignments') }}" class="alert-link">Créer une nouvelle archive</a>
+          </p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+
+
+
+

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+  <div class="col-md-10 mx-auto">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">📦 Archiver les affectations</h5>
+        <p class="text-muted">Archivez les affectations des étudiants dans les locaux pour un examen et une période donnée.</p>
+        
+        <form method="post">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Examen/Session *</label>
+              <select class="form-select" name="exam_id" required>
+                <option value="">-- Choisir un examen --</option>
+                {% for exam in exams %}
+                <option value="{{ exam.id }}">
+                  {{ exam.label }} ({{ exam.session_type or 'Non définie' }})
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            
+            <div class="col-md-6">
+              <label class="form-label">Nom de l'archive *</label>
+              <input type="text" class="form-control" name="archive_name" 
+                     placeholder="Ex: Session Janvier 2024" required>
+              <small class="text-muted">Nom descriptif pour identifier cette archive</small>
+            </div>
+            
+            <div class="col-md-6">
+              <label class="form-label">Date de début de période *</label>
+              <input type="date" class="form-control" name="period_start" required>
+            </div>
+            
+            <div class="col-md-6">
+              <label class="form-label">Date de fin de période *</label>
+              <input type="date" class="form-control" name="period_end" required>
+            </div>
+            
+            <div class="col-md-12">
+              <label class="form-label">Mot de passe administrateur *</label>
+              <input type="password" class="form-control" name="admin_password" 
+                     placeholder="Entrez votre mot de passe administrateur" required 
+                     autocomplete="current-password">
+              <small class="text-muted">Confirmation requise pour archiver les données</small>
+            </div>
+            
+            <div class="col-12">
+              <div class="alert alert-info">
+                <strong>Note :</strong> Cette action va archiver toutes les affectations de l'examen sélectionné. 
+                Les affectations actuelles ne seront pas supprimées, elles seront copiées dans l'archive.
+              </div>
+            </div>
+            
+            <div class="col-12">
+              <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Archiver les affectations</button>
+                <a href="{{ url_for('view_archives') }}" class="btn btn-outline-secondary">Voir les archives</a>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">Annuler</a>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

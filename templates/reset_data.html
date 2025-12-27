@@ -6,24 +6,68 @@
       <div class="card-body">
         <h5 class="card-title text-danger">⚠️ Réinitialisation de la base de données</h5>
         <div class="alert alert-danger">
-          <strong>Attention !</strong> Cette action est irréversible et supprimera :
-          <ul class="mb-0 mt-2">
-            <li>Tous les étudiants</li>
-            <li>Toutes les promotions</li>
-            <li>Toutes les sections</li>
-            <li>Tous les examens/sessions</li>
-            <li>Toutes les affectations</li>
-            <li>Toutes les présences</li>
-          </ul>
-          <p class="mb-0 mt-2"><strong>Les locaux seront conservés.</strong></p>
+          <strong>Attention !</strong> Cette action est irréversible. Sélectionnez les types de données à supprimer :
         </div>
         <form method="post">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Types de données à supprimer :</label>
+            <div class="border rounded p-3 bg-light">
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" name="delete_presences" id="delete_presences">
+                <label class="form-check-label" for="delete_presences">
+                  <strong>Toutes les présences</strong>
+                </label>
+              </div>
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" name="delete_assignments" id="delete_assignments">
+                <label class="form-check-label" for="delete_assignments">
+                  <strong>Toutes les affectations</strong>
+                </label>
+              </div>
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" name="delete_exams" id="delete_exams">
+                <label class="form-check-label" for="delete_exams">
+                  <strong>Tous les examens/sessions</strong>
+                </label>
+              </div>
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" name="delete_students" id="delete_students">
+                <label class="form-check-label" for="delete_students">
+                  <strong>Tous les étudiants</strong>
+                </label>
+              </div>
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" name="delete_sections" id="delete_sections">
+                <label class="form-check-label" for="delete_sections">
+                  <strong>Toutes les sections</strong>
+                </label>
+              </div>
+              <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" name="delete_promotions" id="delete_promotions">
+                <label class="form-check-label" for="delete_promotions">
+                  <strong>Toutes les promotions</strong>
+                </label>
+              </div>
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" name="delete_exam_promotions" id="delete_exam_promotions">
+                <label class="form-check-label" for="delete_exam_promotions">
+                  <strong>Tous les liens examens-promotions</strong>
+                </label>
+              </div>
+            </div>
+            <small class="text-muted d-block mt-2">Les locaux seront toujours conservés.</small>
+          </div>
           <div class="mb-3">
             <label class="form-label">Pour confirmer, tapez <strong>RESET</strong> :</label>
             <input class="form-control" name="confirm" type="text" placeholder="RESET" required>
           </div>
+          <div class="mb-3">
+            <label class="form-label">Mot de passe administrateur *</label>
+            <input class="form-control" name="admin_password" type="password" placeholder="Entrez votre mot de passe administrateur" required autocomplete="current-password">
+            <small class="text-muted">Vous devez entrer votre mot de passe administrateur pour confirmer cette action.</small>
+          </div>
           <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-danger">Réinitialiser la base de données</button>
+            <button type="submit" class="btn btn-danger">Supprimer les données sélectionnées</button>
             <a href="{{ url_for('index') }}" class="btn btn-secondary">Annuler</a>
           </div>
         </form>

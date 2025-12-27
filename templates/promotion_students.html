@@ -7,9 +7,16 @@
         <h5 class="card-title mb-0">Liste des étudiants - {{ promotion.name }}</h5>
         <small class="text-muted">Promotion ID: {{ promotion.id }}</small>
       </div>
-      <a href="{{ url_for('promotions') }}" class="btn btn-outline-secondary">
-        ← Retour aux promotions
-      </a>
+      <div class="d-flex gap-2">
+        {% if students|length > 0 %}
+        <a href="{{ url_for('clear_promotion_students', promotion_id=promotion.id) }}" class="btn btn-outline-danger">
+          🗑️ Effacer tous les étudiants
+        </a>
+        {% endif %}
+        <a href="{{ url_for('promotions') }}" class="btn btn-outline-secondary">
+          ← Retour aux promotions
+        </a>
+      </div>
     </div>
   </div>
 </div>

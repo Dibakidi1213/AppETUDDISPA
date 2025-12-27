@@ -119,10 +119,48 @@ def admin_required(f):
 
 
 @app.route("/")
+@login_required
 def index():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    return redirect(url_for("upload_students"))
+    """Page d'accueil avec statistiques"""
+    conn = get_db()
+    cur = conn.cursor()
+    
+    # Calculer les statistiques globales
+    stats = {}
+    
+    # Total des promotions
+    cur.execute("SELECT COUNT(*) as total FROM promotions")
+    stats['total_promotions'] = cur.fetchone()['total']
+    
+    # Total des étudiants
+    cur.execute("SELECT COUNT(*) as total FROM students")
+    stats['total_students'] = cur.fetchone()['total']
+    
+    # Total des sections
+    cur.execute("SELECT COUNT(*) as total FROM sections")
+    stats['total_sections'] = cur.fetchone()['total']
+    
+    # Total des examens
+    cur.execute("SELECT COUNT(*) as total FROM exams")
+    stats['total_exams'] = cur.fetchone()['total']
+    
+    # Répartition par sexe
+    cur.execute("SELECT sexe, COUNT(*) as count FROM students WHERE sexe IS NOT NULL GROUP BY sexe")
+    sex_stats = cur.fetchall()
+    stats['male_count'] = next((s['count'] for s in sex_stats if s['sexe'] == 'M'), 0)
+    stats['female_count'] = next((s['count'] for s in sex_stats if s['sexe'] == 'F'), 0)
+    
+    # Statistiques supplémentaires
+    cur.execute("SELECT COUNT(*) as total FROM rooms")
+    stats['total_rooms'] = cur.fetchone()['total']
+    
+    cur.execute("SELECT COUNT(*) as total FROM assignments")
+    stats['total_assignments'] = cur.fetchone()['total']
+    
+    cur.execute("SELECT COUNT(*) as total FROM presence WHERE status = 'present'")
+    stats['total_present'] = cur.fetchone()['total']
+    
+    return render_template("index.html", stats=stats, username=session.get('username'))
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -145,7 +183,7 @@ def login():
             session["username"] = user["username"]
             session["is_admin"] = bool(user["is_admin"])
             flash(f"Bienvenue, {user['username']}!", "success")
-            return redirect(url_for("upload_students"))
+            return redirect(url_for("index"))
         else:
             flash("Nom d'utilisateur ou mot de passe incorrect.", "danger")
     
@@ -214,7 +252,7 @@ def promotion_students(promotion_id):
         return redirect(url_for("promotions"))
     
     # Gérer l'ajout d'un étudiant
-    if request.method == "POST":
+    if request.method == "POST" and "full_name" in request.form:
         full_name = request.form.get("full_name", "").strip()
         matricule = request.form.get("matricule", "").strip()
         sexe = request.form.get("sexe", "").strip() or None
@@ -250,6 +288,68 @@ def promotion_students(promotion_id):
     students = cur.fetchall()
     
     return render_template("promotion_students.html", promotion=promotion, students=students)
+
+
+@app.route("/promotions/<int:promotion_id>/students/clear", methods=["GET", "POST"])
+@admin_required
+def clear_promotion_students(promotion_id):
+    """Effacer tous les étudiants d'une promotion (admin seulement)"""
+    conn = get_db()
+    cur = conn.cursor()
+    
+    # Récupérer la promotion
+    cur.execute("SELECT id, name FROM promotions WHERE id = ?", (promotion_id,))
+    promotion = cur.fetchone()
+    
+    if not promotion:
+        flash("Promotion introuvable.", "danger")
+        return redirect(url_for("promotions"))
+    
+    # Compter les étudiants pour l'affichage
+    cur.execute("SELECT COUNT(*) as count FROM students WHERE promotion_id = ?", (promotion_id,))
+    student_count = cur.fetchone()['count']
+    
+    if request.method == "POST":
+        confirm = request.form.get("confirm", "").strip()
+        admin_password = request.form.get("admin_password", "")
+        
+        # Vérifier la confirmation
+        if confirm != "EFFACER":
+            flash("Confirmation incorrecte. Tapez 'EFFACER' pour confirmer.", "danger")
+            return render_template("clear_promotion_students.html", promotion=promotion, student_count=student_count)
+        
+        # Vérifier le mot de passe administrateur
+        if not admin_password:
+            flash("Le mot de passe administrateur est requis.", "danger")
+            return render_template("clear_promotion_students.html", promotion=promotion, student_count=student_count)
+        
+        # Vérifier que le mot de passe est correct
+        cur.execute("SELECT password_hash FROM users WHERE id = ?", (session['user_id'],))
+        user = cur.fetchone()
+        
+        if not user or not check_password_hash(user['password_hash'], admin_password):
+            flash("Mot de passe administrateur incorrect.", "danger")
+            return render_template("clear_promotion_students.html", promotion=promotion, student_count=student_count)
+        
+        try:
+            if student_count == 0:
+                flash("Cette promotion ne contient aucun étudiant.", "info")
+                return redirect(url_for("promotion_students", promotion_id=promotion_id))
+            
+            # Supprimer tous les étudiants de cette promotion
+            # Les affectations et présences seront supprimées automatiquement grâce aux CASCADE
+            cur.execute("DELETE FROM students WHERE promotion_id = ?", (promotion_id,))
+            conn.commit()
+            
+            flash(f"Tous les étudiants ({student_count}) de la promotion '{promotion['name']}' ont été supprimés avec succès.", "success")
+            return redirect(url_for("promotion_students", promotion_id=promotion_id))
+        except Exception as e:
+            conn.rollback()
+            flash(f"Erreur lors de la suppression: {str(e)}", "danger")
+            return redirect(url_for("promotion_students", promotion_id=promotion_id))
+    
+    # GET: Afficher le formulaire de confirmation
+    return render_template("clear_promotion_students.html", promotion=promotion, student_count=student_count)
 
 
 @app.route("/promotions/<int:promotion_id>/edit", methods=["GET", "POST"])
@@ -433,7 +533,100 @@ def rooms():
     exam_id = request.args.get("exam_id")
     exam = _get_exam_or_latest(conn, exam_id) if exam_id else _get_exam_or_latest(conn)
     
-    return render_template("rooms.html", rooms=rooms_list, exam=exam, exams=exams_list)
+    # Calculer les statistiques des locaux
+    stats = {}
+    
+    # Statistiques globales
+    cur.execute("SELECT COUNT(*) as total FROM rooms")
+    stats['total_rooms'] = cur.fetchone()['total']
+    
+    cur.execute("SELECT SUM(benches * students_per_bench) as total_capacity FROM rooms")
+    total_capacity = cur.fetchone()['total_capacity']
+    stats['total_capacity'] = total_capacity if total_capacity else 0
+    
+    # Statistiques par local (pour l'examen sélectionné si disponible)
+    rooms_with_stats = []
+    for room in rooms_list:
+        room_stat = dict(room)
+        room_stat['capacity'] = room['benches'] * room['students_per_bench']
+        
+        # Si un examen est sélectionné, calculer les statistiques pour cet examen
+        if exam:
+            # Nombre d'étudiants affectés dans ce local pour cet examen
+            cur.execute("""
+                SELECT COUNT(*) as assigned_count
+                FROM assignments
+                WHERE room_id = ? AND exam_id = ?
+            """, (room['id'], exam['id']))
+            assigned = cur.fetchone()['assigned_count']
+            room_stat['assigned_count'] = assigned
+            room_stat['available_seats'] = room_stat['capacity'] - assigned
+            room_stat['occupancy_rate'] = round((assigned / room_stat['capacity'] * 100) if room_stat['capacity'] > 0 else 0, 1)
+            
+            # Nombre de présences enregistrées
+            cur.execute("""
+                SELECT COUNT(*) as present_count
+                FROM presence p
+                JOIN assignments a ON p.assignment_id = a.id
+                WHERE a.room_id = ? AND a.exam_id = ? AND p.status = 'present'
+            """, (room['id'], exam['id']))
+            present = cur.fetchone()['present_count']
+            room_stat['present_count'] = present
+            room_stat['absent_count'] = assigned - present if assigned >= present else 0
+        else:
+            # Statistiques globales (tous examens confondus)
+            cur.execute("""
+                SELECT COUNT(DISTINCT a.id) as total_assignments
+                FROM assignments a
+                WHERE a.room_id = ?
+            """, (room['id'],))
+            total_assignments = cur.fetchone()['total_assignments']
+            room_stat['total_assignments'] = total_assignments
+            
+            # Nombre d'examens où ce local a été utilisé
+            cur.execute("""
+                SELECT COUNT(DISTINCT exam_id) as exams_count
+                FROM assignments
+                WHERE room_id = ?
+            """, (room['id'],))
+            exams_count = cur.fetchone()['exams_count']
+            room_stat['exams_count'] = exams_count
+        
+        rooms_with_stats.append(room_stat)
+    
+    # Statistiques globales pour l'examen sélectionné
+    exam_stats = None
+    if exam:
+        cur.execute("""
+            SELECT 
+                COUNT(DISTINCT a.room_id) as rooms_used,
+                COUNT(a.id) as total_assigned,
+                SUM(r.benches * r.students_per_bench) as total_capacity_used,
+                COUNT(p.id) as total_present
+            FROM assignments a
+            JOIN rooms r ON a.room_id = r.id
+            LEFT JOIN presence p ON p.assignment_id = a.id AND p.status = 'present'
+            WHERE a.exam_id = ?
+        """, (exam['id'],))
+        exam_stats_row = cur.fetchone()
+        if exam_stats_row:
+            exam_stats = dict(exam_stats_row)
+            total_capacity_used = exam_stats.get('total_capacity_used') or 0
+            total_assigned = exam_stats.get('total_assigned') or 0
+            
+            if total_capacity_used:
+                exam_stats['total_available'] = total_capacity_used - total_assigned
+                exam_stats['occupancy_rate'] = round((total_assigned / total_capacity_used * 100) if total_capacity_used > 0 else 0, 1)
+            else:
+                exam_stats['total_available'] = 0
+                exam_stats['occupancy_rate'] = 0
+    
+    return render_template("rooms.html", 
+                         rooms=rooms_with_stats, 
+                         exam=exam, 
+                         exams=exams_list,
+                         stats=stats,
+                         exam_stats=exam_stats)
 
 
 @app.route("/rooms/<int:room_id>/edit", methods=["GET", "POST"])
@@ -555,27 +748,95 @@ def delete_user(user_id):
 def reset_data():
     if request.method == "POST":
         confirm = request.form.get("confirm", "").strip()
-        if confirm == "RESET":
-            conn = get_db()
-            cur = conn.cursor()
-            try:
-                # Supprimer toutes les données dans l'ordre pour respecter les contraintes
-                cur.execute("DELETE FROM presence")
-                cur.execute("DELETE FROM assignments")
-                cur.execute("DELETE FROM exam_promotions")
-                cur.execute("DELETE FROM exams")
-                cur.execute("DELETE FROM students")
-                cur.execute("DELETE FROM sections")
-                cur.execute("DELETE FROM promotions")
-                # Les rooms sont conservées (optionnel, on peut les supprimer aussi)
-                # cur.execute("DELETE FROM rooms")
-                conn.commit()
-                flash("Toutes les données ont été supprimées avec succès.", "success")
-            except Exception as e:
-                flash(f"Erreur lors de la réinitialisation: {str(e)}", "danger")
-            return redirect(url_for("index"))
-        else:
+        admin_password = request.form.get("admin_password", "")
+        
+        # Vérifier la confirmation
+        if confirm != "RESET":
             flash("Confirmation incorrecte. Tapez 'RESET' pour confirmer.", "danger")
+            return render_template("reset_data.html")
+        
+        # Vérifier le mot de passe administrateur
+        if not admin_password:
+            flash("Le mot de passe administrateur est requis.", "danger")
+            return render_template("reset_data.html")
+        
+        conn = get_db()
+        cur = conn.cursor()
+        
+        # Récupérer le mot de passe hashé de l'utilisateur administrateur connecté
+        cur.execute("SELECT password_hash FROM users WHERE id = ?", (session['user_id'],))
+        user = cur.fetchone()
+        
+        if not user or not check_password_hash(user['password_hash'], admin_password):
+            flash("Mot de passe administrateur incorrect.", "danger")
+            return render_template("reset_data.html")
+        
+        # Si toutes les vérifications passent, procéder à la réinitialisation sélective
+        try:
+            deleted_items = []
+            
+            # Récupérer les sélections de l'utilisateur
+            delete_presences = request.form.get("delete_presences") == "on"
+            delete_assignments = request.form.get("delete_assignments") == "on"
+            delete_exam_promotions = request.form.get("delete_exam_promotions") == "on"
+            delete_exams = request.form.get("delete_exams") == "on"
+            delete_students = request.form.get("delete_students") == "on"
+            delete_sections = request.form.get("delete_sections") == "on"
+            delete_promotions = request.form.get("delete_promotions") == "on"
+            
+            # Vérifier qu'au moins une option est sélectionnée
+            if not any([delete_presences, delete_assignments, delete_exam_promotions, 
+                       delete_exams, delete_students, delete_sections, delete_promotions]):
+                flash("Veuillez sélectionner au moins un type de données à supprimer.", "warning")
+                return render_template("reset_data.html")
+            
+            # Supprimer dans l'ordre pour respecter les contraintes de clés étrangères
+            if delete_presences:
+                cur.execute("DELETE FROM presence")
+                count = cur.rowcount
+                deleted_items.append(f"{count} présences")
+            
+            if delete_assignments:
+                cur.execute("DELETE FROM assignments")
+                count = cur.rowcount
+                deleted_items.append(f"{count} affectations")
+            
+            if delete_exam_promotions:
+                cur.execute("DELETE FROM exam_promotions")
+                count = cur.rowcount
+                deleted_items.append(f"{count} liens examens-promotions")
+            
+            if delete_exams:
+                cur.execute("DELETE FROM exams")
+                count = cur.rowcount
+                deleted_items.append(f"{count} examens/sessions")
+            
+            if delete_students:
+                cur.execute("DELETE FROM students")
+                count = cur.rowcount
+                deleted_items.append(f"{count} étudiants")
+            
+            if delete_sections:
+                cur.execute("DELETE FROM sections")
+                count = cur.rowcount
+                deleted_items.append(f"{count} sections")
+            
+            if delete_promotions:
+                cur.execute("DELETE FROM promotions")
+                count = cur.rowcount
+                deleted_items.append(f"{count} promotions")
+            
+            conn.commit()
+            
+            if deleted_items:
+                flash(f"Suppression réussie : {', '.join(deleted_items)}.", "success")
+            else:
+                flash("Aucune donnée supprimée.", "info")
+                
+        except Exception as e:
+            conn.rollback()
+            flash(f"Erreur lors de la réinitialisation: {str(e)}", "danger")
+        return redirect(url_for("index"))
     
     return render_template("reset_data.html")
 
@@ -986,6 +1247,251 @@ def validate_presence(token):
             "session": row["session_type"],
         }
     )
+
+
+@app.route("/admin/archive", methods=["GET", "POST"])
+@admin_required
+def archive_assignments():
+    """Archiver les affectations d'un examen pour une période donnée"""
+    conn = get_db()
+    cur = conn.cursor()
+    
+    if request.method == "POST":
+        exam_id = request.form.get("exam_id")
+        archive_name = request.form.get("archive_name", "").strip()
+        period_start = request.form.get("period_start", "").strip()
+        period_end = request.form.get("period_end", "").strip()
+        admin_password = request.form.get("admin_password", "")
+        
+        # Validations
+        if not exam_id:
+            flash("Veuillez sélectionner un examen.", "danger")
+            return redirect(url_for("archive_assignments"))
+        
+        if not archive_name:
+            flash("Le nom de l'archive est requis.", "danger")
+            return redirect(url_for("archive_assignments"))
+        
+        if not period_start or not period_end:
+            flash("Les dates de début et de fin de période sont requises.", "danger")
+            return redirect(url_for("archive_assignments"))
+        
+        # Vérifier le mot de passe administrateur
+        if not admin_password:
+            flash("Le mot de passe administrateur est requis.", "danger")
+            return redirect(url_for("archive_assignments"))
+        
+        cur.execute("SELECT password_hash FROM users WHERE id = ?", (session['user_id'],))
+        user = cur.fetchone()
+        
+        if not user or not check_password_hash(user['password_hash'], admin_password):
+            flash("Mot de passe administrateur incorrect.", "danger")
+            return redirect(url_for("archive_assignments"))
+        
+        # Récupérer les informations de l'examen
+        cur.execute("SELECT id, label, session_type FROM exams WHERE id = ?", (exam_id,))
+        exam = cur.fetchone()
+        
+        if not exam:
+            flash("Examen introuvable.", "danger")
+            return redirect(url_for("archive_assignments"))
+        
+        # Récupérer toutes les affectations de cet examen
+        cur.execute("""
+            SELECT 
+                a.id, a.student_id, a.exam_id, a.room_id, a.seat_number, a.qr_token,
+                s.matricule, s.full_name, s.promotion_id, s.section_id,
+                p.name as promotion_name,
+                sec.name as section_name,
+                r.name as room_name
+            FROM assignments a
+            JOIN students s ON a.student_id = s.id
+            JOIN promotions p ON s.promotion_id = p.id
+            LEFT JOIN sections sec ON s.section_id = sec.id
+            JOIN rooms r ON a.room_id = r.id
+            WHERE a.exam_id = ?
+            ORDER BY r.name, a.seat_number
+        """, (exam_id,))
+        
+        assignments = cur.fetchall()
+        
+        if not assignments:
+            flash("Aucune affectation trouvée pour cet examen.", "warning")
+            return redirect(url_for("archive_assignments"))
+        
+        # Archiver les affectations
+        try:
+            archived_count = 0
+            for assignment in assignments:
+                cur.execute("""
+                    INSERT INTO assignment_archives (
+                        archive_name, exam_id, exam_label, exam_session_type,
+                        period_start_date, period_end_date,
+                        student_id, student_matricule, student_full_name,
+                        student_promotion_id, student_promotion_name,
+                        student_section_id, student_section_name,
+                        room_id, room_name, seat_number, qr_token,
+                        archived_by
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    archive_name,
+                    exam['id'],
+                    exam['label'],
+                    exam['session_type'],
+                    period_start,
+                    period_end,
+                    assignment['student_id'],
+                    assignment['matricule'],
+                    assignment['full_name'],
+                    assignment['promotion_id'],
+                    assignment['promotion_name'],
+                    assignment['section_id'],
+                    assignment['section_name'],
+                    assignment['room_id'],
+                    assignment['room_name'],
+                    assignment['seat_number'],
+                    assignment['qr_token'],
+                    session['user_id']
+                ))
+                archived_count += 1
+            
+            conn.commit()
+            flash(f"Archive créée avec succès : {archived_count} affectations archivées pour '{archive_name}'.", "success")
+            return redirect(url_for("view_archives"))
+        except Exception as e:
+            conn.rollback()
+            flash(f"Erreur lors de l'archivage: {str(e)}", "danger")
+    
+    # GET: Afficher le formulaire d'archivage
+    cur.execute("SELECT id, label, session_type FROM exams ORDER BY label")
+    exams = cur.fetchall()
+    
+    return render_template("archive_assignments.html", exams=exams)
+
+
+@app.route("/admin/archives", methods=["GET"])
+@admin_required
+def view_archives():
+    """Consulter les archives des affectations"""
+    conn = get_db()
+    cur = conn.cursor()
+    
+    # Récupérer les paramètres de filtrage
+    archive_name_filter = request.args.get("archive_name", "").strip()
+    period_start_filter = request.args.get("period_start", "").strip()
+    period_end_filter = request.args.get("period_end", "").strip()
+    exam_id_filter = request.args.get("exam_id", "").strip()
+    
+    # Construire la requête avec filtres
+    query = """
+        SELECT DISTINCT
+            archive_name, exam_id, exam_label, exam_session_type,
+            period_start_date, period_end_date,
+            COUNT(*) as assignment_count,
+            MIN(archived_at) as archived_at,
+            MAX(archived_at) as last_archived_at
+        FROM assignment_archives
+        WHERE 1=1
+    """
+    params = []
+    
+    if archive_name_filter:
+        query += " AND archive_name LIKE ?"
+        params.append(f"%{archive_name_filter}%")
+    
+    if period_start_filter:
+        query += " AND period_start_date >= ?"
+        params.append(period_start_filter)
+    
+    if period_end_filter:
+        query += " AND period_end_date <= ?"
+        params.append(period_end_filter)
+    
+    if exam_id_filter:
+        query += " AND exam_id = ?"
+        params.append(exam_id_filter)
+    
+    query += " GROUP BY archive_name, exam_id, exam_label, exam_session_type, period_start_date, period_end_date"
+    query += " ORDER BY archived_at DESC"
+    
+    cur.execute(query, params)
+    archives = cur.fetchall()
+    
+    # Récupérer la liste des examens pour le filtre
+    cur.execute("SELECT id, label, session_type FROM exams ORDER BY label")
+    exams = cur.fetchall()
+    
+    return render_template("view_archives.html", 
+                         archives=archives, 
+                         exams=exams,
+                         archive_name_filter=archive_name_filter,
+                         period_start_filter=period_start_filter,
+                         period_end_filter=period_end_filter,
+                         exam_id_filter=exam_id_filter)
+
+
+@app.route("/admin/archives/<path:archive_name>/details")
+@admin_required
+def archive_details(archive_name):
+    """Voir les détails d'une archive spécifique"""
+    from urllib.parse import unquote
+    conn = get_db()
+    cur = conn.cursor()
+    
+    # Décoder le nom de l'archive depuis l'URL
+    archive_name = unquote(archive_name)
+    
+    # Récupérer les paramètres de filtrage
+    exam_id = request.args.get("exam_id")
+    period_start = request.args.get("period_start")
+    period_end = request.args.get("period_end")
+    
+    query = """
+        SELECT 
+            archive_name, exam_id, exam_label, exam_session_type,
+            period_start_date, period_end_date,
+            student_matricule, student_full_name,
+            student_promotion_name, student_section_name,
+            room_name, seat_number, archived_at
+        FROM assignment_archives
+        WHERE archive_name = ?
+    """
+    params = [archive_name]
+    
+    if exam_id:
+        query += " AND exam_id = ?"
+        params.append(exam_id)
+    
+    if period_start:
+        query += " AND period_start_date = ?"
+        params.append(period_start)
+    
+    if period_end:
+        query += " AND period_end_date = ?"
+        params.append(period_end)
+    
+    query += " ORDER BY room_name, seat_number"
+    
+    cur.execute(query, params)
+    assignments = cur.fetchall()
+    
+    if not assignments:
+        flash("Archive introuvable.", "danger")
+        return redirect(url_for("view_archives"))
+    
+    # Récupérer les informations de l'archive
+    archive_info = {
+        'name': assignments[0]['archive_name'],
+        'exam_label': assignments[0]['exam_label'],
+        'exam_session_type': assignments[0]['exam_session_type'],
+        'period_start': assignments[0]['period_start_date'],
+        'period_end': assignments[0]['period_end_date'],
+        'count': len(assignments)
+    }
+    
+    return render_template("archive_details.html", 
+                         assignments=assignments, 
+                         archive_info=archive_info)
 
 #if __name__ == "__main__":
  #   app.run(debug=True, host="127.0.0.1", port=5000)
