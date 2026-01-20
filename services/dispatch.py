@@ -26,7 +26,7 @@ def equitable_order(students):
     return ordered
 
 
-def distribute_students(conn, exam_id, promo_counts=None):
+def distribute_students(conn, exam_id, promo_counts=None, balanced=False):
     """
     Distribue les étudiants dans les locaux.
     
@@ -35,6 +35,7 @@ def distribute_students(conn, exam_id, promo_counts=None):
         exam_id: ID de l'examen
         promo_counts: Dictionnaire {promotion_id: nombre} pour limiter le nombre d'étudiants par promotion.
                      Si None, prend tous les étudiants.
+        balanced: Si True, répartir de manière équilibrée dans tous les locaux.
     """
     cur = conn.cursor()
     
@@ -95,93 +96,135 @@ def distribute_students(conn, exam_id, promo_counts=None):
         return {"assigned": 0, "rooms": len(rooms)}
 
     cur.execute("DELETE FROM assignments WHERE exam_id = ?", (exam_id,))
-    cur.execute(
-        "DELETE FROM sqlite_sequence WHERE name='assignments'"
-    )  # keep ids small after refresh
+    # Removed: DELETE FROM sqlite_sequence to avoid ID conflicts with presence table
 
     seat_map = []
     rooms_used = 0
     
-    # Créer des queues pour chaque promotion pour faciliter le round-robin
-    promo_queues = {}
-    for promo_id, students in students_by_promo.items():
-        promo_queues[promo_id] = deque(students)
-    
-    promo_ids_list = list(promo_queues.keys())
-    
-    # Pour chaque local, remplir banc par banc en évitant les promotions identiques sur le même banc
-    for room in rooms:
-        benches = room["benches"]
-        students_per_bench = room["students_per_bench"]
-        capacity = _room_capacity(room)
+    if balanced:
+        # Mode équilibré : répartir proportionnellement selon les capacités des locaux
+        all_students = []
+        for students in students_by_promo.values():
+            all_students.extend(students)
+        all_students = equitable_order(all_students)
         
-        if capacity <= 0 or benches <= 0 or students_per_bench <= 0:
-            continue
+        rooms_list = list(rooms)
+        room_assignments = {room["id"]: [] for room in rooms_list}
+        room_capacities = {room["id"]: _room_capacity(room) for room in rooms_list}
         
-        # Vérifier s'il reste des étudiants
-        has_students = any(promo_queues[pid] for pid in promo_ids_list)
-        if not has_students:
-            continue
+        total_students = len(all_students)
+        total_capacity = sum(room_capacities.values())
         
-        rooms_used += 1
-        seat_number = 1  # Numéro de place global dans le local
+        # Calculer les cibles proportionnelles pour chaque local
+        room_targets = {}
+        for rid, capacity in room_capacities.items():
+            room_targets[rid] = (capacity / total_capacity) * total_students if total_capacity > 0 else 0
         
-        # Pour chaque banc dans le local
-        for bench_num in range(1, benches + 1):
-            bench_students = []
-            bench_promo_index = 0
+        for student in all_students:
+            # Trouver le local qui est le plus en dessous de sa cible proportionnelle
+            available_rooms = [(rid, room_targets[rid] - len(room_assignments[rid])) for rid in room_assignments if len(room_assignments[rid]) < room_capacities[rid]]
+            if not available_rooms:
+                break
+            # Trier par écart à la cible (descendant : plus en dessous = priorité)
+            available_rooms.sort(key=lambda x: x[1], reverse=True)
+            target_room_id = available_rooms[0][0]
             
-            # Mélanger l'ordre des promotions pour ce banc pour éviter les patterns répétitifs
-            shuffled_promo_order = list(promo_ids_list)
-            random.shuffle(shuffled_promo_order)
-            
-            # Remplir ce banc avec des étudiants de promotions différentes (round-robin)
-            # Priorité : éviter au maximum les promotions identiques sur le même banc
-            attempts = 0
-            max_attempts = students_per_bench * len(promo_ids_list) * 3
-            
-            while len(bench_students) < students_per_bench and attempts < max_attempts:
-                # Obtenir les promotions déjà présentes sur ce banc
-                bench_promos = [s[1] for s in bench_students]
-                
-                # Trouver les promotions disponibles (qui ont encore des étudiants)
-                available_promos = [pid for pid in shuffled_promo_order if promo_queues[pid]]
-                
-                if not available_promos:
-                    break
-                
-                # Prioriser les promotions qui ne sont pas encore sur ce banc
-                preferred_promos = [pid for pid in available_promos if pid not in bench_promos]
-                
-                # Si on a des promotions non encore utilisées sur ce banc, les utiliser en priorité
-                if preferred_promos:
-                    # Utiliser round-robin parmi les promotions préférées
-                    promo_id = preferred_promos[bench_promo_index % len(preferred_promos)]
-                else:
-                    # Si toutes les promotions disponibles sont déjà sur le banc,
-                    # utiliser round-robin parmi toutes les promotions disponibles
-                    # (cas où une promotion a beaucoup plus d'étudiants)
-                    promo_id = available_promos[bench_promo_index % len(available_promos)]
-                
-                # Prendre un étudiant de cette promotion
-                student = promo_queues[promo_id].popleft()
-                bench_students.append((student, promo_id))
-                bench_promo_index += 1
-                attempts += 1
-            
-            # Assigner les places dans ce banc
-            for student, _ in bench_students:
-                qr_token = f"ASSIGN-{secrets.token_urlsafe(12)}"
-                seat_map.append(
-                    (
-                        student["id"],
-                        exam_id,
-                        room["id"],
-                        seat_number,
-                        qr_token,
-                    )
+            qr_token = f"ASSIGN-{secrets.token_urlsafe(12)}"
+            current_count = len(room_assignments[target_room_id])
+            seat_map.append(
+                (
+                    student["id"],
+                    exam_id,
+                    target_room_id,
+                    current_count + 1,
+                    qr_token,
                 )
-                seat_number += 1
+            )
+            room_assignments[target_room_id].append(student)
+        
+        rooms_used = len([r for r in room_assignments.values() if r])
+    else:
+        # Mode séquentiel : remplir local par local
+        # Créer des queues pour chaque promotion pour faciliter le round-robin
+        promo_queues = {}
+        for promo_id, students in students_by_promo.items():
+            promo_queues[promo_id] = deque(students)
+        
+        promo_ids_list = list(promo_queues.keys())
+        
+        # Pour chaque local, remplir banc par banc en évitant les promotions identiques sur le même banc
+        for room in rooms:
+            benches = room["benches"]
+            students_per_bench = room["students_per_bench"]
+            capacity = _room_capacity(room)
+            
+            if capacity <= 0 or benches <= 0 or students_per_bench <= 0:
+                continue
+            
+            # Vérifier s'il reste des étudiants
+            has_students = any(promo_queues[pid] for pid in promo_ids_list)
+            if not has_students:
+                continue
+            
+            rooms_used += 1
+            seat_number = 1  # Numéro de place global dans le local
+            
+            # Pour chaque banc dans le local
+            for bench_num in range(1, benches + 1):
+                bench_students = []
+                bench_promo_index = 0
+                
+                # Mélanger l'ordre des promotions pour ce banc pour éviter les patterns répétitifs
+                shuffled_promo_order = list(promo_ids_list)
+                random.shuffle(shuffled_promo_order)
+                
+                # Remplir ce banc avec des étudiants de promotions différentes (round-robin)
+                # Priorité : éviter au maximum les promotions identiques sur le même banc
+                attempts = 0
+                max_attempts = students_per_bench * len(promo_ids_list) * 3
+                
+                while len(bench_students) < students_per_bench and attempts < max_attempts:
+                    # Obtenir les promotions déjà présentes sur ce banc
+                    bench_promos = [s[1] for s in bench_students]
+                    
+                    # Trouver les promotions disponibles (qui ont encore des étudiants)
+                    available_promos = [pid for pid in shuffled_promo_order if promo_queues[pid]]
+                    
+                    if not available_promos:
+                        break
+                    
+                    # Prioriser les promotions qui ne sont pas encore sur ce banc
+                    preferred_promos = [pid for pid in available_promos if pid not in bench_promos]
+                    
+                    # Si on a des promotions non encore utilisées sur ce banc, les utiliser en priorité
+                    if preferred_promos:
+                        # Utiliser round-robin parmi les promotions préférées
+                        promo_id = preferred_promos[bench_promo_index % len(preferred_promos)]
+                    else:
+                        # Si toutes les promotions disponibles sont déjà sur le banc,
+                        # utiliser round-robin parmi toutes les promotions disponibles
+                        # (cas où une promotion a beaucoup plus d'étudiants)
+                        promo_id = available_promos[bench_promo_index % len(available_promos)]
+                    
+                    # Prendre un étudiant de cette promotion
+                    student = promo_queues[promo_id].popleft()
+                    bench_students.append((student, promo_id))
+                    bench_promo_index += 1
+                    attempts += 1
+                
+                # Assigner les places dans ce banc
+                for student, _ in bench_students:
+                    qr_token = f"ASSIGN-{secrets.token_urlsafe(12)}"
+                    seat_map.append(
+                        (
+                            student["id"],
+                            exam_id,
+                            room["id"],
+                            seat_number,
+                            qr_token,
+                        )
+                    )
+                    seat_number += 1
 
     cur.executemany(
         """
@@ -191,6 +234,14 @@ def distribute_students(conn, exam_id, promo_counts=None):
         seat_map,
     )
     conn.commit()
+    
+    # Initialiser les présences : tous les étudiants commencent comme "absent" par défaut
+    cur.execute("""
+        INSERT INTO presence (assignment_id, status, scanned_at, scanned_by)
+        SELECT id, 'absent', datetime('now'), NULL FROM assignments WHERE exam_id = ?
+    """, (exam_id,))
+    conn.commit()
+    
     return {"assigned": len(seat_map), "rooms": rooms_used}
 
 
