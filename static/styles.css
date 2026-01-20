@@ -1,7 +1,163 @@
-body {
-  background: #f6f7fb;
+/* ========== GLOBAL STYLES ========== */
+* {
+  box-sizing: border-box;
 }
 
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #f6f7fb;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+main.container {
+  max-width: 1400px;
+  margin-top: 1rem;
+  margin-bottom: 2rem;
+  padding: 0 0.5rem;
+}
+
+/* Make sure main fills small screens nicely */
+@media (max-width: 576px) {
+  main.container {
+    max-width: 100%;
+    padding: 0 0.5rem;
+  }
+  .navbar-brand img {
+    height: 32px;
+  }
+}
+
+/* ========== CARDS ========== */
+.card {
+  border: none;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.card-body {
+  padding: 1.5rem;
+}
+
+.card-title {
+  color: #333;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+/* ========== BUTTONS ========== */
+.btn {
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  display: inline-block;
+  text-decoration: none;
+  vertical-align: middle;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-sm {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .btn-group {
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  
+  .btn-group .btn {
+    width: 100%;
+  }
+}
+
+/* ========== FORMS ========== */
+.form-control,
+.form-select {
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.95rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.form-label {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+/* ========== TABLES ========== */
+.table {
+  margin-bottom: 0;
+  font-size: 0.9rem;
+}
+
+.table thead {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #333;
+}
+
+.table th {
+  border-color: #dee2e6;
+  padding: 0.75rem;
+}
+
+.table td {
+  padding: 0.75rem;
+  border-color: #dee2e6;
+}
+
+.table-hover tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ========== BADGES ========== */
+.badge {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border-radius: 4px;
+}
+
+/* ========== BADGES GRID ========== */
 .badge-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -14,6 +170,11 @@ body {
   border: 1px solid #e5e7eb;
   padding: 10px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  transition: all 0.2s ease;
+}
+
+.badge-card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .badge-header {
@@ -39,9 +200,96 @@ body {
   margin-top: 8px;
 }
 
+/* ========== ALERTS ========== */
+.alert {
+  border-radius: 8px;
+  border: none;
+  margin-bottom: 1rem;
+}
+
+.alert-dismissible {
+  padding-right: 2rem;
+}
+
+/* ========== MODALS ========== */
+.modal-content {
+  border-radius: 10px;
+  border: none;
+}
+
+.modal-header {
+  border-bottom: 1px solid #e5e7eb;
+  background-color: #f8f9fa;
+}
+
+.modal-title {
+  color: #333;
+  font-weight: 600;
+}
+
+/* ========== PROGRESS BAR ========== */
+.progress {
+  border-radius: 6px;
+  background-color: #e9ecef;
+  overflow: hidden;
+}
+
+.progress-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 500;
+  font-size: 0.8rem;
+}
+
+/* ========== UTILITIES ========== */
+.text-muted {
+  color: #6c757d !important;
+}
+
+.gap-1 { gap: 0.25rem; }
+.gap-2 { gap: 0.5rem; }
+.gap-3 { gap: 1rem; }
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 576px) {
+  main.container {
+    padding: 0 0.5rem;
+  }
+  
+  .card-body {
+    padding: 1rem;
+  }
+  
+  .table {
+    font-size: 0.8rem;
+  }
+  
+  .btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+}
+
+/* ========== PRINT ========== */
 @media print {
-  nav, .btn, .alert { display: none !important; }
-  body { background: white; }
-  .badge-card { page-break-inside: avoid; }
+  nav, .btn, .alert, footer { 
+    display: none !important; 
+  }
+  
+  body { 
+    background: white;
+    padding: 10mm;
+  }
+  
+  .badge-card { 
+    page-break-inside: avoid; 
+  }
+  
+  .card {
+    page-break-inside: avoid;
+    box-shadow: none;
+  }
 }
 
