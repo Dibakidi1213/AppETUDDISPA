@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .notifications-container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .notification-item {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-left: 4px solid #ffc107;
+    transition: all 0.2s;
+  }
+  .notification-item.unread {
+    border-left-color: #fd7e14;
+    background: #fff3cd;
+  }
+  .notification-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .notification-message {
+    color: #333;
+    font-weight: 500;
+  }
+  .notification-meta {
+    font-size: 0.85rem;
+    color: #666;
+  }
+  .notification-actions {
+    display: flex;
+    gap: 10px;
+  }
+  .nav-tabs .nav-link {
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #6c757d;
+    font-weight: 500;
+  }
+  .nav-tabs .nav-link.active {
+    border-bottom-color: #ffc107;
+    color: #ffc107;
+    background: none;
+  }
+  .nav-tabs .nav-link:hover {
+    border-bottom-color: #ffc107;
+    color: #ffc107;
+  }
+  .tab-content {
+    padding-top: 20px;
+  }
+</style>
+
+<div class="notifications-container">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2>🔔 Notifications</h2>
+      <p class="text-muted">Vos notifications et alertes récentes</p>
+    </div>
+    <div>
+      {% if unread_notifications_count > 0 %}
+      <button class="btn btn-outline-warning" onclick="markAllNotificationsRead()">
+        ✓ Tout marquer comme lu
+      </button>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="notifications-list">
+    {% for notification in notifications %}
+    <div class="notification-item {% if not notification.is_read %}unread{% endif %}">
+      <div class="notification-header">
+        <div class="notification-message">
+          {{ notification.message }}
+          {% if not notification.is_read %}
+            <span class="badge bg-warning ms-2">Nouveau</span>
+          {% endif %}
+        </div>
+        <div class="notification-meta">
+          {{ notification.created_at[:16] }}
+        </div>
+      </div>
+
+      <div class="notification-actions">
+        {% if not notification.is_read %}
+        <button class="btn btn-sm btn-outline-warning" onclick="markAsRead({{ notification.id }})">
+          ✓ Marquer comme lu
+        </button>
+        {% endif %}
+        <button class="btn btn-sm btn-outline-danger" onclick="deleteNotification({{ notification.id }})">
+          🗑️ Supprimer
+        </button>
+      </div>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+      <div class="text-muted">
+        <h4>🔔 Aucune notification</h4>
+        <p>Vous n'avez pas encore reçu de notifications.</p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+function markAsRead(notificationId) {
+  fetch(`/notifications/${notificationId}/mark_read`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      location.reload();
+    } else {
+      alert('Erreur lors de la mise à jour');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Erreur de réseau');
+  });
+}
+
+function deleteNotification(notificationId) {
+  if (!confirm('Êtes-vous sûr de vouloir supprimer cette notification ?')) {
+    return;
+  }
+
+  fetch(`/notifications/${notificationId}/delete`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      location.reload();
+    } else {
+      alert('Erreur lors de la suppression');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Erreur de réseau');
+  });
+}
+
+function markAllNotificationsRead() {
+  fetch('/notifications/mark_all_read', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      location.reload();
+    } else {
+      alert('Erreur lors de la mise à jour');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Erreur de réseau');
+  });
+}
+</script>
+{% endblock %}

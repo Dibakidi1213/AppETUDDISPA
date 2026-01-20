@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .send-container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .form-card {
+    background: white;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+</style>
+
+<div class="send-container">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2>✉️ Nouveau message</h2>
+      <p class="text-muted">Envoyez un message à l'administration ou à un collègue surveillant</p>
+    </div>
+    <a href="{{ url_for('messages') }}" class="btn btn-outline-secondary">← Retour</a>
+  </div>
+
+  <div class="form-card">
+    <form method="post">
+      <div class="mb-3">
+        <label for="recipient_id" class="form-label">Destinataire *</label>
+        <select class="form-select" id="recipient_id" name="recipient_id" required>
+          <option value="">-- Sélectionner un destinataire --</option>
+          {% for recipient in recipients %}
+          <option value="{{ recipient.id }}">{{ recipient.username }}{% if recipient.id == session.user_id %} (vous){% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <label for="subject" class="form-label">Sujet *</label>
+        <input type="text" class="form-control" id="subject" name="subject" required
+               placeholder="Ex: Problème avec les examens de la promotion G2">
+      </div>
+
+      <div class="mb-3">
+        <label for="message" class="form-label">Message *</label>
+        <textarea class="form-control" id="message" name="message" rows="6" required
+                  placeholder="Décrivez le problème en détail..."></textarea>
+      </div>
+
+      {% if not is_admin %}
+      <div class="mb-3">
+        <label for="room_id" class="form-label">Local affecté *</label>
+        <select class="form-select" id="room_id" name="room_id" required>
+          <option value="">-- Sélectionner un local --</option>
+          {% for assignment in assignments %}
+          <option value="{{ assignment.room_id }}">{{ assignment.room_name }} ({{ assignment.label }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">
+          📤 Envoyer le message
+        </button>
+        <a href="{{ url_for('messages') }}" class="btn btn-outline-secondary">Annuler</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

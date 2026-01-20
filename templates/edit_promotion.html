@@ -4,15 +4,15 @@
   <div class="col-md-8 mx-auto">
     <div class="card shadow-sm">
       <div class="card-body">
-        <h5 class="card-title">Modifier la promotion</h5>
+        <h5 class="card-title">✏️ Modifier la promotion</h5>
         <form method="post">
           <div class="mb-3">
             <label class="form-label">Nom de la promotion *</label>
-            <input class="form-control" name="name" value="{{ promotion['name'] }}" required>
+            <input class="form-control" name="name" value="{{ promotion['name'] }}" required placeholder="Ex: L1 ETRO">
           </div>
-          <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
-            <a href="{{ url_for('promotions') }}" class="btn btn-secondary">Annuler</a>
+          <div class="btn-group w-100">
+            <button type="submit" class="btn btn-primary">✓ Enregistrer les modifications</button>
+            <a href="{{ url_for('promotions') }}" class="btn btn-secondary">❌ Annuler</a>
           </div>
         </form>
       </div>

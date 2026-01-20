@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>ISTA GOMBE-MATADI - JNC_DispaExam</title>
+    <title>ISTA-GM_JNC_DispaExam</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <style>
@@ -33,51 +33,206 @@
             width: 100%;
             z-index: 1000;
             margin-bottom: 0 !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         body {
             padding-top: 76px; /* Hauteur approximative de la navbar */
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 576px) {
+            body {
+                background-attachment: scroll; /* fixed backgrounds cause issues on mobile */
+                background-size: 140px auto;
+                padding-top: 64px; /* slightly smaller navbar on mobile */
+            }
+            .navbar-brand img {
+                height: 32px !important;
+                margin-right: 8px !important;
+            }
+            main.container {
+                padding: 0 0.5rem;
+                max-width: 100%;
+            }
         }
         main.container {
             position: relative;
             z-index: 1;
             margin-top: 0;
+            min-height: calc(100vh - 200px);
         }
         .card {
-            background-color: rgba(255, 255, 255, 0.95);
+            background-color: rgba(255, 255, 255, 0.98);
             backdrop-filter: blur(2px);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        .navbar-nav .nav-link {
+            padding: 0.5rem 0.75rem !important;
+            margin: 0 0.25rem;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+        .navbar-nav .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .dropdown-menu {
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            min-width: 200px;
+        }
+        .dropdown-item {
+            padding: 0.6rem 1rem;
+            transition: all 0.2s ease;
+        }
+        .dropdown-item:hover {
+            background-color: #e7f1ff;
+            color: #0d6efd;
+        }
+        /* Amélioration des formulaires */
+        .form-control, .form-select {
+            border-radius: 6px !important;
+            border: 1px solid #dee2e6 !important;
+        }
+        /* Amélioration des boutons */
+        .btn {
+            border-radius: 6px !important;
+            font-weight: 500 !important;
+            transition: all 0.2s ease !important;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
         }
     </style>
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
-        <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+        <a class="navbar-brand d-flex align-items-center" href="{% if session.get('is_supervisor') %}{{ url_for('supervisor_dashboard') }}{% else %}{{ url_for('index') }}{% endif %}">
             <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" style="height: 40px; margin-right: 10px;">
-            ISTA GOMBE-MATADI - JNC_DispaExam
+            ISTA GM - JNC_DispaExam
         </a>
-        <div class="collapse navbar-collapse">
+        {% if not session.get('is_supervisor') %}
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        {% endif %}
+        <div class="collapse navbar-collapse" id="mainNavbar">
             <ul class="navbar-nav me-auto">
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('promotions') }}">Promotions</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('upload_students') }}">Import étudiants</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('rooms') }}">Locaux</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('exams') }}">Examens</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('dispatch') }}">Affectation</a></li>
                 {% if session.get('is_admin') %}
+                <!-- Liens pour administrateurs -->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                        Administration
+                        Affectation
                     </a>
                     <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{{ url_for('manage_users') }}">Gérer les utilisateurs</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{{ url_for('archive_assignments') }}">Archiver les affectations</a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('view_archives') }}">Consulter les archives</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="{{ url_for('reset_data') }}">Réinitialiser les données</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('upload_students') }}">👥 Importer Étudiants</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('dispatch') }}">📊 Affectation étudiants</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('assign_supervisors_manual') }}">📊 Affectation Surveillants</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('manage_supervisor_assignments') }}">👥 Gestion affectations surveillants</a></li>
                     </ul>
                 </li>
+
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        💰 Paiement
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{{ url_for('payment_rates') }}">⚙️ Tarifs de paiement</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('calculate_payments') }}">🧮 Calculer paiements</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('payment_history') }}">📊 Historique paiements</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('generate_payment_report') }}">📄 Rapport de paiement</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('scan_presence_menu') }}">📱 Présence</a></li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        Cotes
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#">Saisir les cotes</a></li>
+                        <li><a class="dropdown-item" href="#">Consulter les cotes</a></li>
+                        <li><a class="dropdown-item" href="#">Exporter les cotes</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        📬 Messages
+                        {% if unread_messages_count > 0 %}
+                        <span class="badge bg-danger ms-1">{{ unread_messages_count }}</span>
+                        {% endif %}
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{{ url_for('messages') }}">
+                            📬 Tous les messages
+                            {% if unread_messages_count > 0 %}
+                            <span class="badge bg-danger ms-1">{{ unread_messages_count }} non lu{{ 's' if unread_messages_count > 1 else '' }}</span>
+                            {% endif %}
+                        </a></li>
+                        {% if recent_unread_messages %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Messages récents</h6></li>
+                        {% for message in recent_unread_messages %}
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('messages') }}">
+                                <div class="d-flex justify-content-between">
+                                    <small class="fw-bold">{{ message.sender_name }}</small>
+                                    <small class="text-muted">{{ message.created_at[:10] }}</small>
+                                </div>
+                                <small class="text-truncate d-block" style="max-width: 250px;">{{ message.subject }}</small>
+                            </a>
+                        </li>
+                        {% endfor %}
+                        {% endif %}
+                        <li><hr class="dropdown-divider"></li>
+                        {% if not session.get('is_admin') %}
+                        <li><a class="dropdown-item" href="{{ url_for('send_message') }}">✉️ Nouveau message</a></li>
+                        {% else %}
+                        <li><a class="dropdown-item" href="{{ url_for('send_message_admin') }}">✉️ Nouveau message</a></li>
+                        {% endif %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">🔔 Notifications</h6></li>
+                        <li><h6 class="dropdown-header">🔔 Toutes les notifications</h6></li>
+                        {% if recent_notifications %}
+                        {% for notification in recent_notifications %}
+                        <li>
+                            <a class="dropdown-item{% if not notification.is_read %} bg-light{% endif %}" href="{{ url_for('notifications') }}">
+                                <small class="text-truncate d-block" style="max-width: 250px;">{{ notification.message }}</small>
+                                <small class="text-muted">{{ notification.created_at[:10] }}</small>
+                            </a>
+                        </li>
+                        {% endfor %}
+                        {% endif %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('notifications') }}#mark-all-read" onclick="markAllNotificationsRead()">✔️ Tout marquer comme lu</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        ⚙️ Configuration
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{{ url_for('import_assign_supervisors') }}">📥 Import & assignation surveillants</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('import_supervisors') }}">📄 Import surveillants</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('archive_assignments') }}">📦 Archiver les affectations</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('view_archives') }}">📚 Consulter les archives</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('view_supervisor_archives') }}">📚 Consulter archives surveillants</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('promotions') }}">📚 Promotions</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('exams') }}">📝 Examens</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('rooms') }}">🏢 Locaux</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('manage_users') }}">👤 Gestion utilisateurs</a></li>
+                        <li><hr class="dropdown-divider"></li>                        
+                        <li><a class="dropdown-item" href="{{ url_for('reset_data') }}">🔄 Réinitialiser données</a></li>
+                    </ul>
+                </li>               
+                {% elif session.get('is_supervisor') %}
+                <!-- Liens pour surveillants -->
+                
                 {% endif %}
             </ul>
+            {% if not session.get('is_supervisor') %}
             <ul class="navbar-nav">
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
@@ -88,6 +243,7 @@
                     </ul>
                 </li>
             </ul>
+            {% endif %}
         </div>
     </div>
 </nav>
@@ -108,6 +264,26 @@
     <small>&copy; Décembre 2025 ISTA GOMBE-MATADI - JNC_DispaExam - Version 1.1</small>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<script>
+function markAllNotificationsRead() {
+  fetch('/notifications/mark_all_read', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      location.reload();
+    } else {
+      alert('Erreur lors de la mise à jour');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Erreur de réseau');
+  });
+}
+</script>
 

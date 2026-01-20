@@ -2,35 +2,39 @@
 {% block content %}
 <div class="card shadow-sm">
   <div class="card-body">
-    <h5 class="card-title">Importer les étudiants (Excel)</h5>
+    <h5 class="card-title">📤 Importer les étudiants (Excel)</h5>
     <p class="text-muted mb-3">Colonnes attendues : <strong>nom</strong> (obligatoire), <strong>sexe</strong> (optionnel).</p>
     <form method="post" enctype="multipart/form-data">
-      <div class="mb-3">
-        <label for="promotion_id" class="form-label">Sélectionner une promotion *</label>
-        <select class="form-select" id="promotion_id" name="promotion_id" required>
-          <option value="">-- Choisir une promotion --</option>
-          {% for promo in promotions %}
-          <option value="{{ promo.id }}">{{ promo.name }}</option>
-          {% endfor %}
-        </select>
-        {% if not promotions %}
-        <small class="text-warning d-block mt-1">Aucune promotion disponible. <a href="{{ url_for('promotions') }}">Créez d'abord une promotion</a>.</small>
-        {% else %}
-        <small class="text-muted d-block mt-1"><a href="{{ url_for('promotions') }}">Gérer les promotions</a></small>
-        {% endif %}
+      <div class="row g-3 align-items-end">
+        <div class="col-md-5">
+          <label for="promotion_id" class="form-label">Sélectionner une promotion *</label>
+          <select class="form-select" id="promotion_id" name="promotion_id" required>
+            <option value="">-- Choisir une promotion --</option>
+            {% for promo in promotions %}
+            <option value="{{ promo.id }}">{{ promo.name }}</option>
+            {% endfor %}
+          </select>
+          {% if not promotions %}
+          <small class="text-warning d-block mt-1">❌ Aucune promotion disponible. <a href="{{ url_for('promotions') }}">Créez d'abord une promotion</a>.</small>
+          {% else %}
+          <small class="text-muted d-block mt-1">💡 <a href="{{ url_for('promotions') }}">Gérer les promotions</a></small>
+          {% endif %}
+        </div>
+        <div class="col-md-5">
+          <label for="excel" class="form-label">Fichier Excel (.xlsx, .xls)</label>
+          <input class="form-control" type="file" id="excel" name="excel" accept=".xlsx,.xls" required>
+        </div>
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-primary w-100">📥 Importer</button>
+        </div>
       </div>
-      <div class="mb-3">
-        <label for="excel" class="form-label">Fichier Excel (.xlsx, .xls)</label>
-        <input class="form-control" type="file" id="excel" name="excel" accept=".xlsx,.xls" required>
-      </div>
-      <button type="submit" class="btn btn-primary">Importer</button>
     </form>
     <hr>
     <div class="mt-3">
-      <p class="mb-1"><strong>Total étudiants en base : {{ total }}</strong></p>
+      <p class="mb-1"><strong>📊 Total étudiants en base : <span class="badge bg-info">{{ total }}</span></strong></p>
       {% if not promotions %}
       <div class="alert alert-warning mt-2">
-        <small>Pour créer une promotion, importez un fichier Excel avec des étudiants. La promotion sera créée automatiquement si elle n'existe pas.</small>
+        <small>💡 Pour créer une promotion, importez un fichier Excel avec des étudiants. La promotion sera créée automatiquement si elle n'existe pas.</small>
       </div>
       {% endif %}
     </div>

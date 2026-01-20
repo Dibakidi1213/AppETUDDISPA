@@ -4,34 +4,34 @@
   <div class="col-md-5">
     <div class="card shadow-sm mb-3">
       <div class="card-body">
-        <h5 class="card-title">Nouvelle session</h5>
+        <h5 class="card-title">➕ Créer une nouvelle session</h5>
         <form method="post">
           <div class="mb-3">
             <label class="form-label">Nom de la session *</label>
-            <input class="form-control" name="label" placeholder="Session 1, Session 2, etc." required>
+            <input class="form-control" name="label" placeholder="Ex: Examen Final 2024" required>
           </div>
           <div class="mb-3">
             <label class="form-label">Période *</label>
             <select class="form-select" name="session_type" required>
               <option value="">-- Choisir une période --</option>
-              <option value="Matin">Matin</option>
-              <option value="Après-midi">Après-midi</option>
+              <option value="Matin">🌅 Matin</option>
+              <option value="Après-midi">☀️ Après-midi</option>
             </select>
           </div>
           <div class="mb-3">
-            <label class="form-label">Promotions * (Sélection multiple : Ctrl+clic ou Cmd+clic)</label>
+            <label class="form-label">Promotions * (Sélection multiple)</label>
             <select class="form-select" name="promotion_ids" multiple size="5" required>
               {% for promo in promotions %}
               <option value="{{ promo.id }}">{{ promo.name }}</option>
               {% endfor %}
             </select>
             {% if not promotions %}
-            <small class="text-warning d-block mt-1">Aucune promotion disponible. <a href="{{ url_for('promotions') }}">Créez d'abord une promotion</a>.</small>
+            <small class="text-warning d-block mt-1">❌ Aucune promotion disponible. <a href="{{ url_for('promotions') }}">Créez une promotion d'abord</a>.</small>
             {% else %}
-            <small class="text-muted d-block mt-1">Maintenez Ctrl (Windows) ou Cmd (Mac) pour sélectionner plusieurs promotions</small>
+            <small class="text-muted d-block mt-1">💡 Maintenez Ctrl (Windows) ou Cmd (Mac) pour sélectionner plusieurs promotions</small>
             {% endif %}
           </div>
-          <button class="btn btn-primary">Enregistrer</button>
+          <button class="btn btn-primary w-100">✓ Enregistrer</button>
         </form>
       </div>
     </div>
@@ -39,36 +39,50 @@
   <div class="col-md-7">
     <div class="card shadow-sm">
       <div class="card-body">
-        <h5 class="card-title mb-3">Sessions programmées</h5>
-        <table class="table table-sm table-striped table-hover">
-          <thead class="table-dark">
-            <tr><th>Nom de session</th><th>Période</th><th>Promotions</th><th>Actions</th></tr>
-          </thead>
-          <tbody>
-          {% for e in exams %}
-            <tr>
-              <td><strong>{{ e['label'] }}</strong></td>
-              <td>
-                {% if e['session_type'] == 'Matin' %}
-                  <span class="badge bg-info text-dark">Matin</span>
-                {% elif e['session_type'] == 'Après-midi' %}
-                  <span class="badge bg-warning text-dark">Après-midi</span>
-                {% else %}
-                  <span class="badge bg-secondary">{{ e['session_type'] or 'Non définie' }}</span>
-                {% endif %}
-              </td>
-              <td><strong>{{ e['promotion_names'] or 'Non définie' }}</strong></td>
-              <td>
-                <a href="{{ url_for('edit_exam', exam_id=e['id']) }}" class="btn btn-sm btn-outline-primary">Modifier</a>
-                <a href="{{ url_for('delete_exam', exam_id=e['id']) }}" class="btn btn-sm btn-outline-danger delete-exam-btn" 
-                   data-exam-label="{{ e['label'] }}">Supprimer</a>
-              </td>
-            </tr>
-          {% else %}
-            <tr><td colspan="4" class="text-center text-muted">Aucune session programmée.</td></tr>
-          {% endfor %}
-          </tbody>
-        </table>
+        <h5 class="card-title">📅 Sessions programmées</h5>
+        {% if exams %}
+        <div class="table-responsive">
+          <table class="table table-sm table-striped table-hover">
+            <thead class="table-dark">
+              <tr>
+                <th>Nom</th>
+                <th>Période</th>
+                <th>Promotions</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+            {% for e in exams %}
+              <tr>
+                <td><strong>{{ e['label'] }}</strong></td>
+                <td>
+                  {% if e['session_type'] == 'Matin' %}
+                    <span class="badge bg-info text-dark">🌅 Matin</span>
+                  {% elif e['session_type'] == 'Après-midi' %}
+                    <span class="badge bg-warning text-dark">☀️ Après-midi</span>
+                  {% else %}
+                    <span class="badge bg-secondary">{{ e['session_type'] or 'Non définie' }}</span>
+                  {% endif %}
+                </td>
+                <td><small>{{ e['promotion_names'] or 'Non définie' }}</small></td>
+                <td>
+                  <div class="btn-group">
+                    <a href="{{ url_for('edit_exam', exam_id=e['id']) }}" class="btn btn-sm btn-outline-primary" title="Modifier">✏️ Modifier</a>
+                    <a href="{{ url_for('delete_exam', exam_id=e['id']) }}" class="btn btn-sm btn-outline-danger delete-exam-btn" 
+                       data-exam-label="{{ e['label'] }}" title="Supprimer">❌ Supprimer</a>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+          <strong>ℹ️ Aucune session programmée</strong><br>
+          Utilisez le formulaire à gauche pour créer votre première session.
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -80,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function() {
     deleteButtons.forEach(function(btn) {
         btn.addEventListener('click', function(e) {
             var examLabel = this.getAttribute('data-exam-label');
-            if (!confirm('Êtes-vous sûr de vouloir supprimer la session "' + examLabel + '" ? Cette action est irréversible.')) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer la session "' + examLabel + '" ?\n\nCette action est irréversible.')) {
                 e.preventDefault();
             }
         });

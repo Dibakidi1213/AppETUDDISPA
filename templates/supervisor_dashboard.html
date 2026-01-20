@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .supervisor-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .supervisor-header h2 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+  }
+  
+  .supervisor-header p {
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+  }
+  
+  .exam-section {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+  }
+  
+  .exam-title {
+    color: #333;
+    font-weight: 600;
+    margin-bottom: 12px;
+    font-size: 0.95rem;
+    word-break: break-word;
+  }
+  
+  .room-card {
+    background: white;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 12px;
+    border-left: 4px solid #667eea;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+  
+  .room-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  
+  .room-name {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.9rem;
+    flex: 1;
+    min-width: 120px;
+  }
+  
+  .room-header .badge {
+    font-size: 0.7rem;
+    white-space: nowrap;
+  }
+  
+  .room-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  
+  .stat-mini {
+    background: #f0f0f0;
+    border-radius: 6px;
+    padding: 6px;
+    text-align: center;
+    font-size: 0.7rem;
+  }
+  
+  .stat-value {
+    font-weight: bold;
+    color: #667eea;
+    font-size: 0.9rem;
+  }
+  
+  .stat-label {
+    color: #666;
+    font-size: 0.6rem;
+    margin-top: 2px;
+  }
+  
+  .room-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  
+  .room-actions .btn {
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    flex: 1;
+    min-width: 100px;
+  }
+  
+  .empty-state {
+    background: white;
+    border-radius: 10px;
+    padding: 30px;
+    text-align: center;
+    color: #666;
+  }
+  
+  /* Responsivité mobile */
+  @media (max-width: 576px) {
+    .supervisor-header {
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    
+    .supervisor-header h2 {
+      font-size: 1.2rem;
+      margin-bottom: 8px;
+    }
+    
+    .supervisor-header p {
+      font-size: 0.8rem;
+      margin-bottom: 10px;
+    }
+    
+    .supervisor-header .btn {
+      width: 100%;
+    }
+    
+    .exam-section {
+      padding: 12px;
+      margin-bottom: 15px;
+    }
+    
+    .exam-title {
+      font-size: 0.85rem;
+      margin-bottom: 10px;
+    }
+    
+    .room-card {
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+    
+    .room-name {
+      font-size: 0.85rem;
+    }
+    
+    .room-stats {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .room-actions {
+      gap: 5px;
+    }
+    
+    .room-actions .btn {
+      font-size: 0.65rem;
+      padding: 4px 6px;
+      min-width: auto;
+    }
+    
+    .stat-value {
+      font-size: 0.8rem;
+    }
+    
+    .stat-mini {
+      padding: 5px;
+    }
+  }
+  
+  /* Responsivité tablette */
+  @media (min-width: 577px) and (max-width: 992px) {
+    .supervisor-header {
+      padding: 20px;
+    }
+    
+    .supervisor-header h2 {
+      font-size: 1.3rem;
+    }
+    
+    .exam-section {
+      padding: 15px;
+    }
+    
+    .room-card {
+      padding: 12px;
+    }
+    
+    .room-actions .btn {
+      font-size: 0.8rem;
+      padding: 4px 10px;
+    }
+  }
+</style>
+
+<div class="supervisor-header">
+  <h2 class="mb-2">👨‍✔️ Tableau de bord - Surveillant</h2>
+  <p class="mb-0">Bienvenue {{ username }} | Gestion de vos locaux affectés</p>
+  <div style="margin-top: 15px;">
+    <a href="{{ url_for('messages') }}" class="btn btn-info btn-sm me-2">📬 Messages</a>
+    <a href="{{ url_for('logout') }}" class="btn btn-light btn-sm">🚪 Déconnexion</a>
+  </div>
+</div>
+
+{% if exams_with_rooms %}
+  {% for exam_group in exams_with_rooms %}
+  <div class="exam-section">
+    <div class="exam-title">
+      📝 {{ exam_group.exam.label }}
+      {% if exam_group.exam.session_type == 'Matin' %}
+        <span class="badge bg-info text-dark">🌅 Matin</span>
+      {% elif exam_group.exam.session_type == 'Après-midi' %}
+        <span class="badge bg-warning text-dark">☀️ Après-midi</span>
+      {% endif %}
+    </div>
+    
+    {% if exam_group.rooms %}
+      {% for room in exam_group.rooms %}
+      <div class="room-card">
+        <div class="room-header">
+          <span class="room-name">🏢 {{ room.name }}</span>
+          <div>
+            {% if room.is_room_leader %}
+              <span class="badge bg-warning text-dark me-1" title="Chef de Salle">👑 Chef de Salle</span>
+            {% else %}
+              <span class="badge bg-secondary me-1" title="Surveillant">👤 Surveillant</span>
+            {% endif %}
+            <span class="badge bg-secondary">Capacité: {{ room.benches * room.students_per_bench }}</span>
+          </div>
+        </div>
+        
+        <div class="room-stats">
+          <div class="stat-mini">
+            <div class="stat-value">{{ room.total_assigned }}</div>
+            <div class="stat-label">Affectés</div>
+          </div>
+          <div class="stat-mini">
+            <div class="stat-value" style="color: #28a745;">{{ room.present_count }}</div>
+            <div class="stat-label">Présents</div>
+          </div>
+          <div class="stat-mini">
+            <div class="stat-value" style="color: #dc3545;">{{ room.absent_count }}</div>
+            <div class="stat-label">Absents</div>
+          </div>
+        </div>
+        
+        <div class="room-actions">
+          {% if room.is_room_leader %}
+          <a href="{{ url_for('supervisor_room_scan', room_id=room.id, exam_id=exam_group.exam.id) }}" 
+             class="btn btn-primary btn-sm" title="Scanner les QR codes">
+            📱 Scanner QR
+          </a>
+          {% else %}
+          <button class="btn btn-secondary btn-sm" disabled title="Réservé au chef de salle">
+            📱 Scanner QR (Chef uniquement)
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+    <div class="alert alert-info">
+      <strong>ℹ️ Aucun local assigné</strong><br>
+      Vous n'êtes assigné à aucun local pour cette session.
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+{% else %}
+<div class="empty-state">
+  <h5>👨‍✔️ Aucune affectation</h5>
+  <p>Vous n'êtes pas encore assigné à des locaux. Veuillez contacter un administrateur.</p>
+</div>
+{% endif %}
+{% endblock %}

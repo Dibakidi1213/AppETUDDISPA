@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .send-container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .form-card {
+    background: white;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+</style>
+
+<div class="send-container">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2>✉️ Nouveau message</h2>
+      <p class="text-muted">Envoyez un message à un surveillant</p>
+    </div>
+    <a href="{{ url_for('messages') }}" class="btn btn-outline-secondary">← Retour</a>
+  </div>
+
+  <div class="form-card">
+    <form method="post">
+      <div class="mb-3">
+        <label class="form-label">Type d'envoi *</label>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="send_type" id="send_one" value="one" checked>
+          <label class="form-check-label" for="send_one">
+            Envoyer à un surveillant spécifique
+          </label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="send_type" id="send_all" value="all">
+          <label class="form-check-label" for="send_all">
+            Envoyer à tous les surveillants
+          </label>
+        </div>
+      </div>
+
+      <div id="room_selection" class="mb-3">
+        <label for="room_id" class="form-label">Sélectionner un local</label>
+        <select class="form-select" id="room_id" name="room_id">
+          <option value="">-- Sélectionner un local --</option>
+          {% for room in rooms %}
+          <option value="{{ room.id }}">{{ room.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div id="supervisor_selection" class="mb-3">
+        <label for="supervisor_id" class="form-label">Destinataire *</label>
+        <select class="form-select" id="supervisor_id" name="supervisor_id" required>
+          <option value="">-- Sélectionner un surveillant --</option>
+          {% for supervisor in supervisors %}
+          <option value="{{ supervisor.id }}" data-rooms="{{ supervisor.room_assignments|join(',') }}">{{ supervisor.username }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <label for="subject" class="form-label">Sujet *</label>
+        <input type="text" class="form-control" id="subject" name="subject" required
+               placeholder="Ex: Rappel concernant les procédures d'examen">
+      </div>
+
+      <div class="mb-3">
+        <label for="message" class="form-label">Message *</label>
+        <textarea class="form-control" id="message" name="message" rows="6" required
+                  placeholder="Saisissez votre message..."></textarea>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">
+          📤 Envoyer le message
+        </button>
+        <a href="{{ url_for('messages') }}" class="btn btn-outline-secondary">Annuler</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const rooms = {{ rooms | tojson }};
+const supervisors = {{ supervisors | tojson }};
+
+document.addEventListener('DOMContentLoaded', function() {
+  const sendTypeRadios = document.querySelectorAll('input[name="send_type"]');
+  const roomSelection = document.getElementById('room_selection');
+  const supervisorSelection = document.getElementById('supervisor_id');
+  const roomSelect = document.getElementById('room_id');
+
+  // Initialize display based on default checked radio
+  const checkedRadio = document.querySelector('input[name="send_type"]:checked');
+  if (checkedRadio && checkedRadio.value === 'all') {
+    roomSelection.style.display = 'none';
+    supervisorSelection.style.display = 'none';
+    supervisorSelection.required = false;
+    roomSelect.required = false;
+  } else {
+    roomSelection.style.display = 'block';
+    supervisorSelection.style.display = 'block';
+    supervisorSelection.required = true;
+    roomSelect.required = false;
+    // Initially hide all supervisors except placeholder
+    updateSupervisorVisibility();
+  }
+
+  sendTypeRadios.forEach(radio => {
+    radio.addEventListener('change', function() {
+      if (this.value === 'all') {
+        roomSelection.style.display = 'none';
+        supervisorSelection.style.display = 'none';
+        supervisorSelection.required = false;
+        roomSelect.required = false;
+      } else {
+        roomSelection.style.display = 'block';
+        supervisorSelection.style.display = 'block';
+        supervisorSelection.required = true;
+        roomSelect.required = true;  // Make room selection required
+        // Reset room selection and hide supervisors
+        roomSelect.value = '';
+        updateSupervisorVisibility();
+      }
+    });
+  });
+
+  function updateSupervisorVisibility() {
+    const selectedRoomId = roomSelect.value;
+    const supervisorOptions = supervisorSelection.querySelectorAll('option');
+
+    supervisorOptions.forEach(option => {
+      if (option.value === '') {
+        option.style.display = 'block'; // Keep the placeholder
+        return;
+      }
+
+      if (!selectedRoomId) {
+        // Hide all supervisors if no room is selected
+        option.style.display = 'none';
+        return;
+      }
+
+      const supervisorId = parseInt(option.value);
+      const supervisor = supervisors.find(s => s.id === supervisorId);
+
+      if (!supervisor) {
+        option.style.display = 'none';
+        return;
+      }
+
+      // Check if this supervisor is assigned to the selected room
+      const isAssigned = supervisor.room_assignments && supervisor.room_assignments.includes(parseInt(selectedRoomId));
+
+      option.style.display = isAssigned ? 'block' : 'none';
+    });
+  }
+
+  roomSelect.addEventListener('change', updateSupervisorVisibility);
+});
+</script>
+{% endblock %}

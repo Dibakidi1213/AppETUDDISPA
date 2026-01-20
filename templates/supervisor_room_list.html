@@ -1,0 +1,571 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  @media print {
+    nav, .btn, .alert, footer, .btn-back, .status-buttons { display: none !important; }
+    body { background: white; padding: 10mm; }
+    table { page-break-inside: auto; }
+    tr { page-break-inside: avoid; page-break-after: auto; }
+  }
+  .btn-back {
+    margin-bottom: 20px;
+  }
+  .print-header {
+    display: none;
+  }
+  @media print {
+    .print-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .print-header img {
+      height: 60px;
+      margin-right: 15px;
+    }
+  }
+  .status-buttons {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+  }
+  .status-buttons .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+  .status-present {
+    background-color: #28a745;
+    color: white;
+    border: 1px solid #28a745;
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+  .status-present:hover {
+    background-color: #218838;
+    border-color: #218838;
+  }
+  .status-present.active {
+    background-color: #28a745;
+    border-color: #28a745;
+    opacity: 1;
+  }
+  .status-absent {
+    background-color: #dc3545;
+    color: white;
+    border: 1px solid #dc3545;
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+  .status-absent:hover {
+    background-color: #c82333;
+    border-color: #c82333;
+  }
+  .status-absent.active {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    opacity: 1;
+  }
+  .status-present.inactive,
+  .status-absent.inactive {
+    opacity: 0.5;
+  }
+  .status-present,
+  .status-absent {
+    pointer-events: auto !important;
+  }
+  .table-responsive {
+    overflow-x: auto;
+  }
+  .table {
+    margin-bottom: 0;
+    font-size: 0.9rem;
+    border: 1px solid #dee2e6;
+  }
+  .table thead th {
+    padding: 0.5rem;
+    font-weight: 600;
+    border: 1px solid #dee2e6;
+  }
+  .table tbody td {
+    padding: 0.5rem;
+    vertical-align: middle;
+    border: 1px solid #dee2e6;
+  }
+  .table tfoot td {
+    border: 1px solid #dee2e6;
+  }
+  /* Responsive design */
+  @media (max-width: 768px) {
+    .table {
+      font-size: 0.8rem;
+    }
+    .table thead th,
+    .table tbody td {
+      padding: 0.4rem;
+    }
+    .status-buttons {
+      gap: 0.15rem;
+    }
+    .status-present,
+    .status-absent {
+      padding: 0.2rem 0.4rem;
+      font-size: 0.65rem;
+    }
+  }
+  @media (max-width: 576px) {
+    .table {
+      font-size: 0.75rem;
+    }
+    .table thead th,
+    .table tbody td {
+      padding: 0.3rem;
+    }
+    .status-buttons {
+      gap: 0.1rem;
+    }
+    .status-present,
+    .status-absent {
+      padding: 0.15rem 0.3rem;
+      font-size: 0.6rem;
+    }
+  }
+</style>
+
+<div class="print-header">
+  <div style="flex: 1; display: flex; align-items: center; justify-content: center;">
+    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" style="height: 60px; margin-right: 15px;">
+    <div style="text-align: center;">
+      <h4 style="margin-bottom: 5px;">ISTA GOMBE-MATADI</h4>
+      <p style="margin-bottom: 5px;"><strong>Liste de présence - {{ room.name }}</strong></p>
+      <p style="margin-bottom: 0;"><small>Session: {{ exam.label }} | Période: {{ exam.session_type }}</small></p>
+    </div>
+  </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h5>📋 Liste de présence - {{ room.name }}</h5>
+    <p class="text-muted mb-0">
+      <strong>Session:</strong> {{ exam.label }} | 
+      <strong>Période:</strong> {{ exam.session_type }}
+    </p>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <div>
+      <label for="exam-date" class="form-label mb-1" style="font-size: 0.8rem;">Date d'examen</label>
+      <input type="date" id="exam-date" class="form-control form-control-sm" value="{{ today }}" style="width: 140px;">
+    </div>
+    <div class="btn-group">
+    <a href="{{ url_for('supervisor_dashboard') }}" class="btn btn-outline-secondary btn-back">← Retour</a>
+    <a href="{{ url_for('messages') }}" class="btn btn-info" title="Envoyer un message">📬 Message</a>
+    <button type="button" class="btn btn-success" onclick="saveAllPresence()" title="Enregistrer toutes les présences">
+      💾 Enregistrer la présence
+    </button>
+    <div class="dropdown" style="display: inline-block;">
+      <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Télécharger la liste de présence">
+        ⬇️ Télécharger
+      </button>
+      <ul class="dropdown-menu">
+        <li><a class="dropdown-item" href="javascript:void(0)" onclick="downloadAsXLS()">📊 Télécharger en XLS</a></li>
+        <li><a class="dropdown-item" href="javascript:void(0)" onclick="downloadAsPDF()">📄 Télécharger en PDF</a></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<script>
+function getPresenceData() {
+  const table = document.querySelector('table');
+  const rows = table.querySelectorAll('tbody tr');
+  const data = [];
+  
+  rows.forEach(row => {
+    const cells = row.querySelectorAll('td');
+    if (cells.length >= 3) {
+      const place = cells[0].textContent.trim();
+      const name = cells[1].textContent.trim();
+      const promotion = cells[2].textContent.trim();
+      
+      // Récupérer le statut depuis les boutons
+      let status = '';
+      const presentBtn = cells[3].querySelector('.status-present');
+      const absentBtn = cells[3].querySelector('.status-absent');
+      if (presentBtn && presentBtn.classList.contains('active')) {
+        status = 'PRESENT';
+      } else if (absentBtn && absentBtn.classList.contains('active')) {
+        status = 'ABSENT';
+      }
+      
+      // Seulement ajouter si le statut est PRESENT ou ABSENT
+      if (status === 'PRESENT' || status === 'ABSENT') {
+        data.push({
+          'Place': place,
+          'Nom complet': name,
+          'Promotion': promotion,
+          'Présence': status
+        });
+      }
+    }
+  });
+  
+  return data;
+}
+
+function downloadAsXLS() {
+  const room_name = '{{ room.name }}';
+  const exam_label = '{{ exam.label }}';
+  const session_type = '{{ exam.session_type }}';
+  const data = getPresenceData();
+  
+  // Créer un workbook
+  const workbook = XLSX.utils.book_new();
+  
+  // Ajouter les informations d'en-tête
+  const infoSheet = XLSX.utils.aoa_to_sheet([
+    [''],
+    ['ISTA GOMBE-MATADI'],
+    ['Liste de présence'],
+    [''],
+    [`Salle: ${room_name}`],
+    [`Session: ${exam_label} (${session_type})`],
+    [`Date: ${new Date().toLocaleDateString('fr-FR')}`],
+    [`Heure: ${new Date().toLocaleTimeString('fr-FR')}`],
+  ]);
+  // Fusionner les cellules du titre
+  const merges = [{s: {r: 1, c: 0}, e: {r: 1, c: 2}}];
+  infoSheet['!merges'] = merges;
+  
+  // Ajouter le tableau des données
+  const dataSheet = XLSX.utils.json_to_sheet(data);
+  
+  // Ajouter les feuilles au workbook
+  XLSX.utils.book_append_sheet(workbook, infoSheet, 'Infos');
+  XLSX.utils.book_append_sheet(workbook, dataSheet, 'Présence');
+  
+  // Ajouter une feuille avec les signatures
+  const signaturesSheet = XLSX.utils.aoa_to_sheet([
+    [],
+    [],
+    ['Signatures'],
+    [],
+    ['Surveillant Responsable de la Salle:', '', 'Surveillants:'],
+    [],
+    ['_____________________', '', '_____________________'],
+    [],
+    ['Nom: ________________', '', 'Nom: ________________'],
+    ['Date: ________________', '', 'Date: ________________']
+  ]);
+  
+  XLSX.utils.book_append_sheet(workbook, signaturesSheet, 'Signatures');
+  
+  // Télécharger le fichier
+  XLSX.writeFile(workbook, `Présence de ${room_name}.xlsx`);
+}
+
+function downloadAsPDF() {
+  const room_name = '{{ room.name }}';
+  const exam_label = '{{ exam.label }}';
+  const session_type = '{{ exam.session_type }}';
+  const data = getPresenceData();
+  
+  const opt = {
+    margin: 10,
+    filename: `Présence de ${room_name}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+  };
+  
+  // Créer un contenu personnalisé pour le PDF avec un tableau simplifié
+  const pdfContent = document.createElement('div');
+  pdfContent.style.padding = '20px';
+  
+  // Construire le tableau simplifié
+  let tableHTML = '<table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 1px solid black;">';
+  tableHTML += '<thead><tr style="background-color: #f2f2f2; font-weight: bold;"><th style="border: 1px solid black;">Place</th><th style="border: 1px solid black;">Nom complet</th><th style="border: 1px solid black;">Promotion</th><th style="border: 1px solid black;">Présence</th></tr></thead>';
+  tableHTML += '<tbody>';
+  
+  data.forEach(row => {
+    tableHTML += `<tr><td style="border: 1px solid black;">${row['Place']}</td><td style="border: 1px solid black;">${row['Nom complet']}</td><td style="border: 1px solid black;">${row['Promotion']}</td><td style="border: 1px solid black;">${row['Présence']}</td></tr>`;
+  });
+  
+  tableHTML += '</tbody></table>';
+  
+  pdfContent.innerHTML = `
+    <div style="display: flex; align-items: center; margin-bottom: 20px; gap: 15px;">
+      <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo ISTA" style="height: 60px; flex-shrink: 0;">
+      <div style="text-align: left;">
+        <h2 style="margin: 5px 0;">ISTA GOMBE-MATADI</h2>
+        <h3 style="margin: 5px 0;">Liste de présence</h3>
+      </div>
+    </div>
+    <div style="margin-bottom: 20px;">
+      <p style="margin: 5px 0;"><strong>Salle:</strong> ${room_name}</p>
+      <p style="margin: 5px 0;"><strong>Session:</strong> ${exam_label} (${session_type})</p>
+      <p style="margin: 5px 0;"><strong>Date:</strong> ${new Date().toLocaleDateString('fr-FR')}</p>\n      <p style="margin: 5px 0;"><strong>Heure:</strong> ${new Date().toLocaleTimeString('fr-FR')}</p>
+    </div>
+    <div style="margin-top: 20px;">
+      ${tableHTML}
+    </div>
+    <div style="margin-top: 40px;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="width: 45%; text-align: center; vertical-align: top; padding: 20px 10px 0 10px;">
+            <strong>Surveillant Responsable de la Salle</strong><br>
+            <div style="margin-top: 30px; border-top: 1px solid black; padding-top: 5px;">
+              Nom: ________________<br>
+              Signature: ________________<br>
+              Date: ________________
+            </div>
+          </td>
+          <td style="width: 10%;"></td>
+          <td style="width: 45%; text-align: center; vertical-align: top; padding: 20px 10px 0 10px;">
+            <strong>Surveillants</strong><br>
+            <div style="margin-top: 30px; border-top: 1px solid black; padding-top: 5px;">
+              Nom: ________________<br>
+              Signature: ________________<br>
+              Nom: ________________<br>
+              Signature: ________________<br>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+  `;
+  
+  html2pdf().set(opt).from(pdfContent).save();
+}
+
+function updatePresence(assignmentId, status) {
+  // Update UI immediately
+  const cell = document.getElementById(`status-${assignmentId}`);
+  const previousHTML = cell.innerHTML;
+  cell.innerHTML = `
+    <div class="status-buttons">
+      <button type="button" class="status-present ${status === 'present' ? 'active' : 'inactive'}" title="Marquer présent">PRESENT</button>
+      <button type="button" class="status-absent ${status === 'absent' ? 'active' : 'inactive'}" title="Marquer absent">ABSENT</button>
+    </div>
+  `;
+
+  // Update item class for color if in a list
+  const item = cell.closest('.student-item');
+  if (item) {
+    item.classList.remove('present', 'absent');
+    if (status === 'present') {
+      item.classList.add('present');
+    } else if (status === 'absent') {
+      item.classList.add('absent');
+    }
+  }
+
+  // Send to backend
+  const url = `/supervisor/room/{{ room.id }}/exam/{{ exam.id }}/update_presence/${assignmentId}`;
+  const data = new FormData();
+  data.append('status', status);
+
+  fetch(url, {
+    method: 'POST',
+    body: data
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (!data.success) {
+      alert('Erreur lors de la mise à jour: ' + data.message);
+      // Revert UI
+      cell.innerHTML = previousHTML;
+      // Revert item class
+      if (item) {
+        item.classList.remove('present', 'absent');
+        const prevPresent = previousHTML.includes('status-present active');
+        const prevAbsent = previousHTML.includes('status-absent active');
+        if (prevPresent) {
+          item.classList.add('present');
+        } else if (prevAbsent) {
+          item.classList.add('absent');
+        }
+      }
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Erreur de réseau');
+    // Revert UI
+    cell.innerHTML = previousHTML;
+    // Revert item class
+    if (item) {
+      item.classList.remove('present', 'absent');
+      const prevPresent = previousHTML.includes('status-present active');
+      const prevAbsent = previousHTML.includes('status-absent active');
+      if (prevPresent) {
+        item.classList.add('present');
+      } else if (prevAbsent) {
+        item.classList.add('absent');
+      }
+    }
+  });
+}
+
+function saveAllPresence() {
+  // Récupérer la date sélectionnée
+  const examDate = document.getElementById('exam-date') ? document.getElementById('exam-date').value : new Date().toISOString().split('T')[0];
+  
+  if (!examDate) {
+    alert('Veuillez sélectionner une date d\'examen.');
+    return;
+  }
+
+  // Confirmer l'action
+  if (!confirm('Êtes-vous sûr de vouloir enregistrer toutes les présences pour cette date ? Cette action mettra à jour les présences pour tous les étudiants.')) {
+    return;
+  }
+
+  // Récupérer tous les étudiants et leur statut actuel
+  const students = [];
+  const rows = document.querySelectorAll('tbody tr');
+  
+  rows.forEach(row => {
+    const cells = row.querySelectorAll('td');
+    if (cells.length >= 4) {
+      const statusCell = cells[3];
+      const assignmentId = statusCell.id.replace('status-', '');
+      
+      let status = null;
+      const presentBtn = statusCell.querySelector('.status-present');
+      const absentBtn = statusCell.querySelector('.status-absent');
+      if (presentBtn && presentBtn.classList.contains('active')) {
+        status = 'present';
+      } else if (absentBtn && absentBtn.classList.contains('active')) {
+        status = 'absent';
+      }
+      
+      if (status && assignmentId) {
+        students.push({
+          assignment_id: parseInt(assignmentId),
+          status: status
+        });
+      }
+    }
+  });
+
+  if (students.length === 0) {
+    alert('Aucune présence à enregistrer.');
+    return;
+  }
+
+  // Désactiver le bouton pendant le traitement
+  const saveBtn = document.querySelector('button[onclick="saveAllPresence()"]');
+  const originalText = saveBtn.innerHTML;
+  saveBtn.disabled = true;
+  saveBtn.innerHTML = '⏳ Enregistrement...';
+
+  // Envoyer les données au backend
+  fetch(`/supervisor/room/{{ room.id }}/exam/{{ exam.id }}/save_all_presence`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      exam_date: examDate,
+      presences: students
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert(`✅ Présences enregistrées avec succès pour ${data.saved_count} étudiant(s) !`);
+    } else {
+      alert('❌ Erreur lors de l\'enregistrement: ' + data.message);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('❌ Erreur de réseau lors de l\'enregistrement.');
+  })
+  .finally(() => {
+    // Réactiver le bouton
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = originalText;
+  });
+
+
+// Event delegation for status buttons
+document.addEventListener('DOMContentLoaded', function() {
+  const tbody = document.querySelector('tbody');
+  if (tbody) {
+    tbody.addEventListener('click', function(e) {
+      const button = e.target.closest('.status-present, .status-absent');
+      if (button) {
+        const statusCell = button.closest('[id^="status-"]');
+        const presentBtn = statusCell.querySelector('.status-present');
+        const absentBtn = statusCell.querySelector('.status-absent');
+        
+        if (button.classList.contains('status-present')) {
+          // Clicked PRESENT
+          presentBtn.classList.remove('inactive');
+          presentBtn.classList.add('active');
+          absentBtn.classList.remove('active');
+          absentBtn.classList.add('inactive');
+        } else {
+          // Clicked ABSENT
+          absentBtn.classList.remove('inactive');
+          absentBtn.classList.add('active');
+          presentBtn.classList.remove('active');
+          presentBtn.classList.add('inactive');
+        }
+      }
+    });
+  }
+});
+
+</script>
+
+{% if students %}
+    <div class="table-responsive">
+      <table class="table table-striped table-hover">
+        <thead class="table-dark">
+          <tr>
+            <th style="width: 60px;">Place</th>
+            <th>Nom complet</th>
+            <th>Promotion</th>
+            <th style="width: 150px;">Présence</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for student in students %}
+          <tr>
+            <td><strong>{{ student.seat_number }}</strong></td>
+            <td>{{ student.full_name }}</td>
+            <td>{{ student.promotion_name or '-' }}</td>
+            <td id="status-{{ student.assignment_id }}">
+              <div class="status-buttons">
+                <button type="button" class="status-present {% if student.presence_status == 'present' %}active{% else %}inactive{% endif %}" title="Marquer présent">PRESENT</button>
+                <button type="button" class="status-absent {% if student.presence_status == 'absent' or not student.presence_status %}active{% else %}inactive{% endif %}" title="Marquer absent">ABSENT</button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr class="table-info">
+            <td colspan="4" style="text-align: center; font-weight: bold; padding: 0.75rem;">
+              📊 Total: <strong>{{ students|length }}</strong> étudiant{{ 's' if students|length > 1 else '' }}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+      <strong>ℹ️ Aucun étudiant affecté</strong><br>
+      Aucun étudiant n'est affecté à ce local pour cette session.
+    </div>
+    {% endif %}
+{% endblock %}

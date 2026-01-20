@@ -12,12 +12,14 @@
 </div>
 <div class="d-flex justify-content-between align-items-center mb-3">
   <div>
-    <h5>Macarons - {{ room_name }}</h5>
+    <h5>🏷️ Macarons - {{ room_name }}</h5>
     <p class="text-muted mb-0">
       <strong>Session:</strong> {{ exam['label'] }} ({{ exam['session_type'] or 'Non définie' }})
     </p>
   </div>
-  <button class="btn btn-outline-secondary" onclick="window.print()">Imprimer</button>
+  <div class="btn-group" role="group">
+    <button class="btn btn-outline-secondary" onclick="window.print()" title="Imprimer les macarons">🖨️ Imprimer</button>
+  </div>
 </div>
 <style>
 .badge-grid {

@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+  <div class="col-md-12">
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">⚙️ Configuration et Maintenance</h5>
+          <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">← Retour à l'accueil</a>
+        </div>
+        <p class="text-muted mt-2 mb-0">Outils de configuration et d'archivage du système.</p>
+      </div>
+    </div>
+
+    <!-- Onglets de configuration -->
+    <div class="card shadow-sm">
+      <div class="card-header">
+        <ul class="nav nav-tabs card-header-tabs" id="configTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="archive-tab" data-bs-toggle="tab" data-bs-target="#archive" type="button" role="tab">
+              📦 Archivage
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="maintenance-tab" data-bs-toggle="tab" data-bs-target="#maintenance" type="button" role="tab">
+              🔧 Maintenance
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="system-tab" data-bs-toggle="tab" data-bs-target="#system" type="button" role="tab">
+              ⚙️ Système
+            </button>
+          </li>
+        </ul>
+      </div>
+      <div class="card-body">
+        <div class="tab-content" id="configTabsContent">
+          <!-- Onglet Archivage -->
+          <div class="tab-pane fade show active" id="archive" role="tabpanel">
+            <h6 class="mb-3">📦 Archivage des données</h6>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="card border-primary">
+                  <div class="card-body">
+                    <h6 class="card-title">👥 Archiver les affectations des surveillants</h6>
+                    <p class="card-text">Archivez les affectations des surveillants dans les locaux pour une date donnée.</p>
+                    <form method="post">
+                      <div class="mb-3">
+                        <label class="form-label">Date d'examen *</label>
+                        <input type="date" class="form-control" name="exam_date" required>
+                      </div>
+                      <div class="mb-3">
+                        <label class="form-label">Nom de l'archive *</label>
+                        <input type="text" class="form-control" name="archive_name"
+                               placeholder="Ex: Affectations surveillants 15/01/2026" required>
+                      </div>
+                      <div class="mb-3">
+                        <label class="form-label">Mot de passe administrateur *</label>
+                        <input type="password" class="form-control" name="admin_password"
+                               placeholder="Entrez votre mot de passe" required autocomplete="current-password">
+                      </div>
+                      <button type="submit" class="btn btn-primary">📦 Créer l'archive</button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="card border-info">
+                  <div class="card-body">
+                    <h6 class="card-title">👨‍🎓 Consulter les archives</h6>
+                    <p class="card-text">Accédez aux archives des affectations existantes.</p>
+                    <a href="{{ url_for('view_supervisor_archives') }}" class="btn btn-info">📚 Voir les archives surveillants</a>
+                    <a href="{{ url_for('view_archives') }}" class="btn btn-outline-info ms-2">📚 Voir les archives étudiants</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Onglet Maintenance -->
+          <div class="tab-pane fade" id="maintenance" role="tabpanel">
+            <h6 class="mb-3">🔧 Maintenance du système</h6>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="card border-warning">
+                  <div class="card-body">
+                    <h6 class="card-title">🗑️ Réinitialisation des données</h6>
+                    <p class="card-text">Supprimez toutes les données temporaires (affectations, présences, etc.)</p>
+                    <a href="{{ url_for('reset_data') }}" class="btn btn-warning">🔄 Réinitialiser</a>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="card border-secondary">
+                  <div class="card-body">
+                    <h6 class="card-title">👤 Gestion des utilisateurs</h6>
+                    <p class="card-text">Ajoutez, modifiez ou supprimez des comptes utilisateur.</p>
+                    <a href="{{ url_for('manage_users') }}" class="btn btn-secondary">👤 Gérer utilisateurs</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Onglet Système -->
+          <div class="tab-pane fade" id="system" role="tabpanel">
+            <h6 class="mb-3">⚙️ Informations système</h6>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="card border-success">
+                  <div class="card-body">
+                    <h6 class="card-title">📊 Statistiques</h6>
+                    <p class="card-text">Consultez les statistiques générales du système.</p>
+                    <div class="row text-center">
+                      <div class="col-4">
+                        <div class="stat-value">{{ stats.total_promotions or 0 }}</div>
+                        <small class="text-muted">Promotions</small>
+                      </div>
+                      <div class="col-4">
+                        <div class="stat-value">{{ stats.total_students or 0 }}</div>
+                        <small class="text-muted">Étudiants</small>
+                      </div>
+                      <div class="col-4">
+                        <div class="stat-value">{{ stats.total_assignments or 0 }}</div>
+                        <small class="text-muted">Affectations</small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="card border-info">
+                  <div class="card-body">
+                    <h6 class="card-title">ℹ️ À propos</h6>
+                    <p class="card-text">
+                      <strong>ISTA GM - JNC_DispaExam</strong><br>
+                      Version: 2.0<br>
+                      Date: {{ current_date or '18/01/2026' }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #28a745;
+  }
+</style>
+{% endblock %}

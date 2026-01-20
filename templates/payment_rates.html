@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+  <div class="col-md-5">
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h5 class="card-title">💰 Créer un nouveau tarif</h5>
+        <p class="text-muted small mb-3">Définissez les tarifs de paiement pour les surveillants</p>
+        <form method="post" action="{{ url_for('payment_rates') }}">
+          <div class="mb-3">
+            <label class="form-label">Nom du tarif *</label>
+            <input class="form-control" name="name" required placeholder="Ex: Tarif journalier standard">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Type de tarif *</label>
+            <select class="form-select" name="rate_type" required>
+              <option value="">Sélectionnez un type</option>
+              <option value="daily">Tarif journalier</option>
+              <option value="session">Tarif par session</option>
+            </select>
+            <small class="text-muted">
+              <strong>Journalier:</strong> Paiement par jour complet<br>
+              <strong>Session:</strong> Paiement par session (matinée/après-midi)
+            </small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Montant (CDF) *</label>
+            <input type="number" class="form-control" name="amount" required min="0" step="0.01" placeholder="Ex: 50000">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Devise</label>
+            <input class="form-control" name="currency" value="CDF" readonly>
+            <small class="text-muted">Franc Congolais (CDF)</small>
+          </div>
+          <div class="mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="is_active" value="1" id="is_active" checked>
+              <label class="form-check-label" for="is_active">
+                ✅ Actif
+              </label>
+            </div>
+            <small class="text-muted">Désactivez pour archiver ce tarif</small>
+          </div>
+          <button class="btn btn-success w-100">✓ Créer le tarif</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">💵 Liste des tarifs</h5>
+        {% if rates %}
+        <div class="table-responsive">
+          <table class="table table-striped table-hover">
+            <thead class="table-dark">
+              <tr>
+                <th>Nom</th>
+                <th>Type</th>
+                <th>Montant</th>
+                <th>Statut</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for rate in rates %}
+              <tr>
+                <td><strong>{{ rate['name'] }}</strong></td>
+                <td>
+                  {% if rate['rate_type'] == 'daily' %}
+                    <span class="badge bg-primary">📅 Journalier</span>
+                  {% else %}
+                    <span class="badge bg-info">🕐 Session</span>
+                  {% endif %}
+                </td>
+                <td><strong>{{ "{:,.0f}".format(rate['amount']) }} {{ rate['currency'] }}</strong></td>
+                <td>
+                  {% if rate['is_active'] %}
+                    <span class="badge bg-success">✅ Actif</span>
+                  {% else %}
+                    <span class="badge bg-secondary">⏸️ Inactif</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <button class="btn btn-sm btn-outline-primary edit-rate-btn" 
+                          data-rate='{{ rate | tojson }}' title="Modifier">✏️ Modifier</button>
+                  {% if rate['is_active'] %}
+                    <form method="post" action="{{ url_for('toggle_rate_status', rate_id=rate['id']) }}" style="display: inline;">
+                      <button type="submit" class="btn btn-sm btn-outline-warning" title="Désactiver">⏸️ Désactiver</button>
+                    </form>
+                  {% else %}
+                    <form method="post" action="{{ url_for('toggle_rate_status', rate_id=rate['id']) }}" style="display: inline;">
+                      <button type="submit" class="btn btn-sm btn-outline-success" title="Activer">▶️ Activer</button>
+                    </form>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+          <strong>ℹ️ Aucun tarif défini</strong><br>
+          Créez votre premier tarif avec le formulaire à gauche.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de modification -->
+<div class="modal fade" id="editRateModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">✏️ Modifier le tarif</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="editRateForm" method="post" action="{{ url_for('payment_rates') }}">
+        <div class="modal-body">
+          <input type="hidden" name="rate_id" id="edit_rate_id">
+          <input type="hidden" name="action" value="update">
+          <div class="mb-3">
+            <label class="form-label">Nom du tarif *</label>
+            <input class="form-control" name="name" id="edit_name" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Type de tarif *</label>
+            <select class="form-select" name="rate_type" id="edit_rate_type" required>
+              <option value="daily">Tarif journalier</option>
+              <option value="session">Tarif par session</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Montant (CDF) *</label>
+            <input type="number" class="form-control" name="amount" id="edit_amount" required min="0" step="0.01">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Devise</label>
+            <input class="form-control" name="currency" id="edit_currency" value="CDF" readonly>
+            <small class="text-muted">Franc Congolais (CDF)</small>
+          </div>
+          <div class="mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="is_active" value="1" id="edit_is_active">
+              <label class="form-check-label" for="edit_is_active">
+                ✅ Actif
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary">💾 Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gestionnaire pour les boutons de modification
+    var editButtons = document.querySelectorAll('.edit-rate-btn');
+    editButtons.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var rate = JSON.parse(this.getAttribute('data-rate'));
+            
+            // Remplir le formulaire
+            document.getElementById('edit_rate_id').value = rate.id;
+            document.getElementById('edit_name').value = rate.name;
+            document.getElementById('edit_rate_type').value = rate.rate_type;
+            document.getElementById('edit_amount').value = rate.amount;
+            document.getElementById('edit_currency').value = rate.currency || 'CDF';
+            document.getElementById('edit_is_active').checked = rate.is_active == 1;
+            
+            // Le formulaire a déjà une action de fallback, mais on peut essayer de la définir plus précisément
+            try {
+                var actionUrl = '/admin/update_rate/' + rate.id;
+                document.getElementById('editRateForm').action = actionUrl;
+                console.log('Edit form action set to:', actionUrl);
+            } catch (e) {
+                console.warn('Could not set form action:', e);
+            }
+            
+            var modal = new bootstrap.Modal(document.getElementById('editRateModal'));
+            modal.show();
+        });
+    });
+});
+</script>
+{% endblock %}

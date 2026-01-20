@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <h5 class="card-title mb-3">🗂️ Import & Assignation Surveillants</h5>
+    
+    <div class="alert alert-info mb-4">
+      <strong>📋 Format du fichier Excel attendu:</strong>
+      <ul class="mb-0 mt-2">
+        <li><strong>Colonnes obligatoires:</strong> username, password, exam_id, room_id</li>
+        <li><strong>Colonne optionnelle:</strong> exam_date (format: YYYY-MM-DD)</li>
+        <li>Chaque ligne crée le surveillant (si inexistant) et l'assigne au local/examen</li>
+      </ul>
+    </div>
+    
+    <form method="post" enctype="multipart/form-data">
+      <div class="row g-3 align-items-end mb-4">
+        <div class="col-md-7">
+          <label for="excel" class="form-label"><strong>Fichier Excel (.xlsx, .xls)</strong></label>
+          <input class="form-control form-control-lg" type="file" id="excel" name="excel" accept=".xlsx,.xls" required>
+        </div>
+        <div class="col-md-5">
+          <button type="submit" class="btn btn-success btn-lg w-100">📥 Importer & Assigner</button>
+        </div>
+      </div>
+    </form>
+    
+    <hr>
+    
+    <div class="row mt-4">
+      <div class="col-md-6">
+        <div class="card bg-light">
+          <div class="card-body">
+            <h6 class="card-title">📊 Statistiques</h6>
+            <p class="mb-1">
+              <strong>Total surveillants en base:</strong> 
+              <span class="badge bg-info">{{ total }}</span>
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card bg-light">
+          <div class="card-body">
+            <h6 class="card-title">📝 Exemple Excel</h6>
+            <small class="text-muted">
+              username | password | exam_id | room_id | exam_date<br>
+              superviseur1 | pass123 | 1 | 5 | 2026-01-15<br>
+              superviseur2 | pass456 | 2 | 6 | 2026-01-16
+            </small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

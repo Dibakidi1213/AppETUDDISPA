@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">📄 Générer un rapport de paiement</h5>
+        <p class="text-muted mb-3">Générez un rapport détaillé des paiements pour une période donnée</p>
+        
+        <form method="post" class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label">Date de début *</label>
+            <input type="date" class="form-control" name="start_date" required>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Date de fin *</label>
+            <input type="date" class="form-control" name="end_date" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Surveillant (optionnel)</label>
+            <select class="form-select" name="user_id">
+              <option value="">Tous les surveillants</option>
+              {% for user in users %}
+                <option value="{{ user['id'] }}">{{ user['username'] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">&nbsp;</label>
+            <button type="submit" class="btn btn-primary w-100">
+              📄 Générer
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

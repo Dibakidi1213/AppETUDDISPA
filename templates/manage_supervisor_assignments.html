@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+  <div class="col-md-12">
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">👥 Gestion des affectations de surveillants</h5>
+          <a href="{{ url_for('assign_supervisors_manual') }}" class="btn btn-primary">➕ Nouvelle affectation</a>
+        </div>
+        <p class="text-muted mt-2 mb-0">Consultez et modifiez toutes les affectations de surveillants existantes.</p>
+      </div>
+    </div>
+    
+    {% if assignments_by_date %}
+      {% for exam_date, assignments in assignments_by_date.items() %}
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+          <h6 class="mb-0">
+            📅 Date d'examen: <strong>{{ exam_date }}</strong>
+            <span class="badge bg-info ms-2">{{ assignments|length }} affectation(s)</span>
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered table-striped table-sm">
+              <thead class="table-dark">
+                <tr>
+                  <th style="width: 15%;">Local</th>
+                  <th style="width: 20%;">Session</th>
+                  <th style="width: 25%;">Examen</th>
+                  <th style="width: 25%;">Surveillants</th>
+                  <th style="width: 15%;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% set grouped = {} %}
+                {% for a in assignments %}
+                  {% set key = (a.room_name, a.session_type, a.exam_label) %}
+                  {% if key not in grouped %}
+                    {% set _ = grouped.update({key: []}) %}
+                  {% endif %}
+                  {% set _ = grouped[key].append(a) %}
+                {% endfor %}
+                
+                {% for (room_name, session_type, exam_label), group in grouped.items() %}
+                <tr>
+                  <td><strong>{{ room_name }}</strong></td>
+                  <td><span class="badge bg-info">{{ session_type or '?' }}</span></td>
+                  <td>{{ exam_label }}</td>
+                  <td>
+                    {% for supervisor in group %}
+                      {% if supervisor.is_room_leader %}
+                        <span class="badge bg-warning text-dark me-1" title="Chef de Salle">👑 {{ supervisor.username }}</span>
+                      {% else %}
+                        <span class="badge bg-success me-1">{{ supervisor.username }}</span>
+                      {% endif %}
+                    {% endfor %}
+                  </td>
+                  <td>
+                    {% for supervisor in group %}
+                      <form method="post" style="display:inline;" onsubmit="return confirm('Retirer ' + '{{ supervisor.username }}' + ' du local {{ room_name }} ?');">
+                        <input type="hidden" name="remove_assignment_id" value="{{ supervisor.id }}">
+                        <button class="btn btn-sm btn-danger btn-outline" type="submit" title="Retirer {{ supervisor.username }}">✕</button>
+                      </form>
+                    {% endfor %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+    <div class="card shadow-sm">
+      <div class="card-body text-center">
+        <p class="text-muted mb-3">Aucune affectation de surveillant trouvée.</p>
+        <a href="{{ url_for('assign_supervisors_manual') }}" class="btn btn-primary">➕ Créer la première affectation</a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+  .btn-outline {
+    border: 1px solid currentColor;
+  }
+</style>
+
+<script>
+// Auto-refresh functionality (optional)
+function autoRefresh() {
+  setTimeout(function() {
+    location.reload();
+  }, 30000); // Refresh every 30 seconds
+}
+
+// Uncomment to enable auto-refresh
+// autoRefresh();
+</script>
+{% endblock %}

@@ -1,0 +1,455 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .scan-container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .scanner-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    padding: 25px;
+    color: white;
+    margin-bottom: 20px;
+  }
+  #video {
+    width: 100%;
+    max-width: 500px;
+    border-radius: 10px;
+    background: #000;
+    display: none;
+  }
+  #qr-canvas {
+    display: none;
+  }
+  .scan-input-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+  }
+  .scan-input-group input {
+    flex: 1;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    font-size: 16px;
+  }
+  .scan-input-group button {
+    padding: 12px 24px;
+    border-radius: 8px;
+    border: none;
+    background: white;
+    color: #667eea;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .scan-input-group button:hover {
+    background: #f0f0f0;
+  }
+  .stats-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+  .stat-card-mini {
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  .stat-card-mini .value {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  .stat-card-mini .label {
+    font-size: 0.9rem;
+    color: #666;
+  }
+  .students-list {
+    max-height: 500px;
+    overflow-y: auto;
+  }
+  .student-item {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+  }
+  .student-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  }
+  .student-item.present {
+    border-left: 4px solid #28a745;
+  }
+  .student-item.absent {
+    border-left: 4px solid #dc3545;
+  }
+  .student-info {
+    flex: 1;
+  }
+  .student-name {
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-bottom: 5px;
+  }
+  .student-details {
+    font-size: 0.9rem;
+    color: #666;
+  }
+  .presence-badge {
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.9rem;
+  }
+  .presence-badge.present {
+    background: #d4edda;
+    color: #155724;
+  }
+  .presence-badge.absent {
+    background: #f8d7da;
+    color: #721c24;
+  }
+  .scan-time {
+    font-size: 0.8rem;
+    color: #666;
+    margin-top: 5px;
+  }
+  .alert-scan {
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    z-index: 9999;
+    min-width: 300px;
+    animation: slideIn 0.3s ease-out;
+  }
+  @keyframes slideIn {
+    from {
+      transform: translateX(400px);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  .camera-controls {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+</style>
+
+<div class="scan-container">
+  <div class="scanner-section">
+    <h4 class="mb-3">📱 Pointage de présence - {{ room_name }}</h4>
+    <p class="mb-3">
+      <strong>Session:</strong> {{ exam['label'] }} 
+      ({{ exam['session_type'] or 'Non définie' }})
+    </p>
+    
+    <!-- Scanner QR Code -->
+    <div class="text-center">
+      <video id="video" autoplay playsinline></video>
+      <canvas id="qr-canvas"></canvas>
+      
+      <div class="camera-controls">
+        <button id="start-camera" class="btn btn-light" onclick="startCamera()">
+          📷 Activer la caméra
+        </button>
+        <button id="stop-camera" class="btn btn-light" onclick="stopCamera()" style="display: none;">
+          ⏹️ Arrêter la caméra
+        </button>
+      </div>
+      
+      <div class="scan-input-group">
+        <input 
+          type="text" 
+          id="qr-input" 
+          placeholder="Scanner le QR code ou saisir le token manuellement"
+          autocomplete="off"
+          onkeypress="if(event.key === 'Enter') validateQR()"
+        >
+        <button onclick="validateQR()">✓ Valider</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistiques -->
+  <div class="stats-cards">
+    <div class="stat-card-mini">
+      <div class="value text-primary">{{ total_students }}</div>
+      <div class="label">Total étudiants</div>
+    </div>
+    <div class="stat-card-mini">
+      <div class="value text-success">{{ present_count }}</div>
+      <div class="label">Présents</div>
+    </div>
+    <div class="stat-card-mini">
+      <div class="value text-danger">{{ absent_count }}</div>
+      <div class="label">Absents</div>
+    </div>
+  </div>
+
+  <!-- Liste des étudiants -->
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h5 class="card-title mb-3">Liste des étudiants</h5>
+      <div class="students-list" id="students-list">
+        {% for student in students %}
+        <div class="student-item {% if student.presence_status == 'present' %}present{% else %}absent{% endif %}" 
+             id="student-{{ student.assignment_id }}">
+          <div class="student-info">
+            <div class="student-name">
+              {{ student.full_name }}
+            </div>
+            <div class="student-details">
+              Place: <strong>{{ student.seat_number }}</strong> | 
+              Matricule: {{ student.matricule or '-' }} | 
+              Promotion: {{ student.promotion_name }}
+            </div>
+            {% if student.presence_status == 'present' %}
+            <div class="scan-time">
+              Scanné le {{ student.scan_date or student.scanned_at[:10] if student.scanned_at else '' }} 
+              à {{ student.scanned_at[11:16] if student.scanned_at and student.scanned_at|length > 16 else '' }}
+              {% if student.scanned_by_username %}par {{ student.scanned_by_username }}{% endif %}
+            </div>
+            {% endif %}
+          </div>
+          <div>
+            {% if student.presence_status == 'present' %}
+            <span class="presence-badge present">✓ Présent</span>
+            {% else %}
+            <span class="presence-badge absent">✗ Absent</span>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Alertes de scan -->
+<div id="scan-alert" class="alert alert-scan" style="display: none;"></div>
+
+<!-- Bibliothèque QR Scanner -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+
+<script>
+let video = null;
+let canvas = null;
+let context = null;
+let scanning = false;
+let stream = null;
+
+function showAlert(message, type = 'success') {
+  const alert = document.getElementById('scan-alert');
+  alert.className = `alert alert-${type} alert-scan`;
+  alert.textContent = message;
+  alert.style.display = 'block';
+  
+  setTimeout(() => {
+    alert.style.display = 'none';
+  }, 3000);
+}
+
+async function startCamera() {
+  try {
+    const constraints = {
+      video: {
+        facingMode: 'environment', // Caméra arrière
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    };
+    
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video = document.getElementById('video');
+    canvas = document.getElementById('qr-canvas');
+    context = canvas.getContext('2d');
+    
+    video.srcObject = stream;
+    video.setAttribute('playsinline', true);
+    video.style.display = 'block';
+    document.getElementById('start-camera').style.display = 'none';
+    document.getElementById('stop-camera').style.display = 'inline-block';
+    
+    video.addEventListener('loadedmetadata', () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      scanning = true;
+      scanQR();
+    });
+    
+    showAlert('Caméra activée. Pointez vers un QR code.', 'info');
+  } catch (err) {
+    console.error('Erreur caméra:', err);
+    showAlert('Impossible d\'accéder à la caméra. Utilisez la saisie manuelle.', 'warning');
+  }
+}
+
+function stopCamera() {
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop());
+    stream = null;
+  }
+  if (video) {
+    video.srcObject = null;
+    video.style.display = 'none';
+  }
+  scanning = false;
+  document.getElementById('start-camera').style.display = 'inline-block';
+  document.getElementById('stop-camera').style.display = 'none';
+}
+
+function scanQR() {
+  if (!scanning || !video || !canvas || !context) return;
+  
+  if (video.readyState === video.HAVE_ENOUGH_DATA) {
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height);
+    
+    if (code) {
+      validateQRCode(code.data);
+      return;
+    }
+  }
+  
+  requestAnimationFrame(scanQR);
+}
+
+async function validateQR() {
+  const input = document.getElementById('qr-input');
+  const token = input.value.trim();
+  
+  if (!token) {
+    showAlert('Veuillez saisir ou scanner un QR code', 'warning');
+    return;
+  }
+  
+  await validateQRCode(token);
+  input.value = '';
+}
+
+async function validateQRCode(token) {
+  try {
+    showAlert('Validation en cours...', 'info');
+    
+    const formData = new FormData();
+    formData.append('token', token);
+    
+    const response = await fetch('/validate_presence', {
+      method: 'POST',
+      body: formData
+    });
+    
+    const data = await response.json();
+    
+    if (data.status === 'ok') {
+      showAlert(`✓ ${data.student} - Présence enregistrée`, 'success');
+      
+      // Mettre à jour l'interface sans recharger
+      setTimeout(() => {
+        refreshPresences();
+        document.getElementById('qr-input').value = '';
+        document.getElementById('qr-input').focus();
+      }, 500);
+    } else {
+      showAlert(`✗ ${data.message || 'Erreur lors de la validation'}`, 'danger');
+    }
+  } catch (error) {
+    console.error('Erreur:', error);
+    showAlert('Erreur de connexion. Vérifiez votre connexion internet.', 'danger');
+  }
+}
+
+// Fonction pour rafraîchir les présences sans recharger la page
+async function refreshPresences() {
+  try {
+    const examId = {{ exam['id'] }};
+    const roomId = {{ room_id }};
+    
+    const response = await fetch(`/api/presences/${roomId}?exam_id=${examId}`);
+    const data = await response.json();
+    
+    if (data.status === 'ok') {
+      // Mettre à jour les statistiques
+      const statCards = document.querySelectorAll('.stat-card-mini .value');
+      if (statCards.length >= 3) {
+        statCards[0].textContent = data.stats.total;
+        statCards[1].textContent = data.stats.present;
+        statCards[2].textContent = data.stats.absent;
+      }
+      
+      // Mettre à jour la liste des étudiants
+      const studentsList = document.getElementById('students-list');
+      studentsList.innerHTML = '';
+      
+      data.students.forEach(student => {
+        const isPresent = student.presence_status === 'present';
+        const studentDiv = document.createElement('div');
+        studentDiv.className = `student-item ${isPresent ? 'present' : 'absent'}`;
+        studentDiv.id = `student-${student.assignment_id}`;
+        
+        let scanTimeHtml = '';
+        if (isPresent && student.scanned_at) {
+          const scanDate = student.scan_date || (student.scanned_at ? student.scanned_at.substring(0, 10) : '');
+          const scanTime = student.scanned_at && student.scanned_at.length > 16 ? student.scanned_at.substring(11, 16) : '';
+          const scannedBy = student.scanned_by_username ? `par ${student.scanned_by_username}` : '';
+          scanTimeHtml = `<div class="scan-time">Scanné le ${scanDate} à ${scanTime} ${scannedBy}</div>`;
+        }
+        
+        studentDiv.innerHTML = `
+          <div class="student-info">
+            <div class="student-name">${student.full_name}</div>
+            <div class="student-details">
+              Place: <strong>${student.seat_number}</strong> | 
+              Matricule: ${student.matricule || '-'} | 
+              Promotion: ${student.promotion_name}
+            </div>
+            ${scanTimeHtml}
+          </div>
+          <div>
+            <span class="presence-badge ${isPresent ? 'present' : 'absent'}">
+              ${isPresent ? '✓ Présent' : '✗ Absent'}
+            </span>
+          </div>
+        `;
+        
+        studentsList.appendChild(studentDiv);
+      });
+    }
+  } catch (error) {
+    console.error('Erreur lors du rafraîchissement:', error);
+  }
+}
+
+// Auto-focus sur le champ de saisie
+document.addEventListener('DOMContentLoaded', function() {
+  const input = document.getElementById('qr-input');
+  if (input) {
+    input.focus();
+  }
+  
+  // Rafraîchissement automatique des présences toutes les 10 secondes
+  setInterval(() => {
+    // Ne rafraîchir que si pas de scan en cours
+    if (!document.getElementById('qr-input').value) {
+      refreshPresences();
+    }
+  }, 10000);
+});
+</script>
+{% endblock %}

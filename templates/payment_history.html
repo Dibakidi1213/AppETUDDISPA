@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h5 class="card-title">📚 Historique des paiements</h5>
+        <p class="text-muted mb-3">Consultez l'historique des paiements calculés et enregistrés</p>
+        
+        <!-- Filtres -->
+        <form method="get" class="row g-3 mb-4">
+          <div class="col-md-3">
+            <label class="form-label">Surveillant</label>
+            <select class="form-select" name="supervisor_id">
+              <option value="">Tous les surveillants</option>
+              {% for supervisor in supervisors %}
+                <option value="{{ supervisor['id'] }}" {{ 'selected' if supervisor_id and supervisor_id == supervisor['id'] else '' }}>
+                  {{ supervisor['username'] }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Statut</label>
+            <select class="form-select" name="status">
+              <option value="">Tous</option>
+              <option value="calculated" {{ 'selected' if status == 'calculated' else '' }}>Calculé</option>
+              <option value="paid" {{ 'selected' if status == 'paid' else '' }}>Payé</option>
+              <option value="cancelled" {{ 'selected' if status == 'cancelled' else '' }}>Annulé</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Date début</label>
+            <input type="date" class="form-control" name="start_date" value="{{ start_date or '' }}">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Date fin</label>
+            <input type="date" class="form-control" name="end_date" value="{{ end_date or '' }}">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">&nbsp;</label>
+            <div>
+              <button type="submit" class="btn btn-primary me-2">🔍 Filtrer</button>
+              <a href="{{ url_for('payment_history') }}" class="btn btn-outline-secondary">🔄 Réinitialiser</a>
+            </div>
+          </div>
+        </form>
+        
+        {% if payments %}
+        <div class="table-responsive">
+          <table class="table table-striped table-hover">
+            <thead class="table-dark">
+              <tr>
+                <th>Surveillant</th>
+                <th>Période</th>
+                <th>Sessions</th>
+                <th>Jours</th>
+                <th>Montant Total</th>
+                <th>Statut</th>
+                <th>Calculé le</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for payment in payments %}
+              <tr>
+                <td><strong>{{ payment['supervisor_name'] }}</strong></td>
+                <td>
+                  <small>{{ payment['start_date'] }}<br>au {{ payment['end_date'] }}</small>
+                </td>
+                <td class="text-center">{{ payment['total_sessions'] }}</td>
+                <td class="text-center">{{ payment['total_days'] }}</td>
+                <td><strong>{{ "{:,.0f}".format(payment['total_amount']) }} {{ payment['currency'] }}</strong></td>
+                <td>
+                  {% if payment['status'] == 'calculated' %}
+                    <span class="badge bg-warning">🧮 Calculé</span>
+                  {% elif payment['status'] == 'paid' %}
+                    <span class="badge bg-success">💰 Payé</span>
+                  {% else %}
+                    <span class="badge bg-secondary">❌ Annulé</span>
+                  {% endif %}
+                </td>
+                <td><small>{{ payment['calculated_at'] }}</small></td>
+                <td>
+                  <div class="btn-group" role="group">
+                    {% if payment['status'] == 'calculated' %}
+                      <a href="{{ url_for('mark_payment_paid', payment_id=payment['id']) }}" 
+                         class="btn btn-sm btn-outline-success" title="Marquer comme payé">💰 Payé</a>
+                      <a href="{{ url_for('cancel_payment', payment_id=payment['id']) }}" 
+                         class="btn btn-sm btn-outline-danger" title="Annuler">❌ Annuler</a>
+                    {% elif payment['status'] == 'paid' %}
+                      <span class="text-muted small">Payé</span>
+                    {% else %}
+                      <span class="text-muted small">Annulé</span>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Statistiques -->
+        <div class="row mt-4">
+          <div class="col-md-3">
+            <div class="card bg-light">
+              <div class="card-body text-center">
+                <h6>Total Calculé</h6>
+                <h4 class="text-warning">{{ "{:,.0f}".format(stats.total_calculated) }} CDF</h4>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card bg-light">
+              <div class="card-body text-center">
+                <h6>Total Payé</h6>
+                <h4 class="text-success">{{ "{:,.0f}".format(stats.total_paid) }} CDF</h4>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card bg-light">
+              <div class="card-body text-center">
+                <h6>Total Sessions</h6>
+                <h4 class="text-info">{{ stats.total_sessions }}</h4>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card bg-light">
+              <div class="card-body text-center">
+                <h6>Nombre de paiements</h6>
+                <h4 class="text-primary">{{ payments|length }}</h4>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {% else %}
+        <div class="alert alert-info">
+          <strong>ℹ️ Aucun paiement trouvé</strong><br>
+          Aucun paiement ne correspond aux critères de recherche.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Auto-submit du formulaire de filtrage lors de changement
+document.addEventListener('DOMContentLoaded', function() {
+    var filterInputs = document.querySelectorAll('select[name="supervisor_id"], select[name="status"]');
+    filterInputs.forEach(function(input) {
+        input.addEventListener('change', function() {
+            this.closest('form').submit();
+        });
+    });
+});
+</script>
+{% endblock %}

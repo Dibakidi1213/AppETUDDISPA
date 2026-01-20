@@ -1,0 +1,816 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .scan-container {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .scanner-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 20px;
+  }
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+  .stat-value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #667eea;
+  }
+  .stat-label {
+    color: #666;
+    font-size: 0.85rem;
+    margin-top: 5px;
+  }
+  .scan-input {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .scan-input input {
+    flex: 1;
+    padding: 12px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: 2px solid #667eea;
+  }
+  .scan-input button {
+    padding: 12px 24px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .scan-input button:hover {
+    background: #5568d3;
+  }
+  .students-list {
+    max-height: 600px;
+    overflow-y: auto;
+  }
+  .student-item {
+    background: white;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-left: 4px solid #ddd;
+    transition: all 0.2s;
+  }
+  .student-item.present {
+    border-left-color: #28a745;
+    background: #f0fdf4;
+  }
+  .student-item.absent {
+    border-left-color: #dc3545;
+    background: #fff5f5;
+  }
+  .student-info {
+    flex: 1;
+  }
+  .student-name {
+    font-weight: 600;
+    color: #333;
+  }
+  .student-seat {
+    color: #666;
+    font-size: 0.85rem;
+  }
+  .student-status {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  .status-present {
+    background: #28a745;
+    color: white;
+  }
+  .status-absent {
+    background: #dc3545;
+    color: white;
+  }
+  .status-pending {
+    background: #ffc107;
+    color: #333;
+  }
+  .alert-result {
+    margin-bottom: 20px;
+    padding: 12px;
+    border-radius: 8px;
+    animation: slideDown 0.3s ease;
+  }
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .btn-back {
+    margin-bottom: 20px;
+  }
+  .status-buttons {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+  }
+  .status-buttons .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+  .status-present {
+    background-color: #28a745;
+    color: white;
+    border: 1px solid #28a745;
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+  .status-present:hover {
+    background-color: #218838;
+    border-color: #218838;
+  }
+  .status-present.active {
+    background-color: #28a745;
+    border-color: #28a745;
+    opacity: 1;
+  }
+  .status-absent {
+    background-color: #dc3545;
+    color: white;
+    border: 1px solid #dc3545;
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+  .status-absent:hover {
+    background-color: #c82333;
+    border-color: #c82333;
+  }
+  .status-absent.active {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    opacity: 1;
+  }
+  .status-present.inactive,
+  .status-absent.inactive {
+    opacity: 0.5;
+    cursor: pointer;
+  }
+</style>
+
+<style>
+  /* Responsivité mobile */
+  @media (max-width: 576px) {
+    .scan-container {
+      margin: 0;
+    }
+    .scanner-header {
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    .scanner-header h3 {
+      font-size: 1.2rem;
+    }
+    .stats-row {
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .stat-card {
+      padding: 10px;
+    }
+    .stat-value {
+      font-size: 1.5rem;
+    }
+    .scan-input {
+      flex-direction: column;
+      gap: 8px;
+    }
+    .scan-input input {
+      padding: 10px;
+      font-size: 14px;
+    }
+    .scan-input button {
+      padding: 10px 20px;
+      font-size: 14px;
+    }
+    .students-list {
+      max-height: 500px;
+    }
+    .student-item {
+      padding: 10px;
+    }
+    .student-name {
+      font-size: 0.9rem;
+    }
+    .student-seat {
+      font-size: 0.8rem;
+    }
+    .student-status {
+      font-size: 0.75rem;
+      padding: 3px 6px;
+    }
+  }
+
+  /* Responsivité tablette */
+  @media (min-width: 577px) and (max-width: 992px) {
+    .scan-container {
+      max-width: 100%;
+    }
+    .scanner-header {
+      padding: 20px;
+    }
+    .stats-row {
+      gap: 12px;
+    }
+    .scan-input input {
+      font-size: 15px;
+    }
+    .scan-input button {
+      padding: 10px 22px;
+    }
+  }
+</style>
+
+<div class="scan-container">
+  <div class="scanner-header">
+    <h3 class="mb-2">📱 Pointage par QR Code</h3>
+    <p class="mb-0">Local: <strong>{{ room.name }}</strong> | Session: <strong>{{ exam.label }}</strong> ({{ exam.session_type }})</p>
+  </div>
+  
+  {% if result %}
+    {% if result.success %}
+    <div class="alert-result alert alert-success">
+      ✅ <strong>{{ result.message }}</strong>
+    </div>
+    {% else %}
+    <div class="alert-result alert alert-danger">
+      ❌ <strong>Erreur: </strong>{{ result.message }}
+    </div>
+    {% endif %}
+  {% endif %}
+  
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-value">{{ assignments|length }}</div>
+      <div class="stat-label">Affectés</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color: #28a745;" id="present-count">
+        {% set present = assignments | selectattr('presence_status', 'equalto', 'present') | list | length %}
+        {{ present }}
+      </div>
+      <div class="stat-label">Présents</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color: #dc3545;" id="absent-count">
+        {% set absent = assignments | selectattr('presence_status', 'equalto', 'absent') | list | length %}
+        {{ absent }}
+      </div>
+      <div class="stat-label">Absents</div>
+    </div>
+  </div>
+  
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <h5 class="card-title">� Sélection de la date d'examen</h5>
+      <p class="text-muted small mb-3">Choisissez la date pour laquelle vous marquez la présence</p>
+      <div class="mb-3">
+        <label for="exam-date" class="form-label">Date d'examen</label>
+        <input type="date" id="exam-date" class="form-control" value="{{ today }}" required onchange="updateDateDisplay()">
+      </div>
+      <h5 class="card-title">�📲 Scanner un QR Code</h5>
+      <p class="text-muted small mb-3">Scannez le QR code de l'étudiant avec votre appareil</p>
+      <div class="mb-3">
+        <button type="button" id="start-camera" class="btn btn-primary me-2">📷 Scanner avec caméra</button>
+        <span class="text-muted small">ou saisissez manuellement ci-dessous</span>
+      </div>
+      <form onsubmit="scanManual(event)">
+        <input type="text" name="qr_token" id="qr-input" placeholder="Scannez le code QR ici..." autofocus required>
+        <button type="submit">Enregistrer</button>
+      </form>
+      <div id="camera-container" style="display: none;">
+        <video id="video" width="100%" height="300" autoplay muted playsinline></video>
+        <canvas id="canvas" style="display: none;"></canvas>
+        <div class="mt-2">
+          <button type="button" id="stop-camera" class="btn btn-secondary btn-sm">Arrêter la caméra</button>
+        </div>
+        <p class="text-muted small mt-2">Positionnez le QR code devant la caméra</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <!-- Header with presence list info and buttons -->
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h5 class="mb-1">Liste de présence des Etudiants</h5>
+          <p class="text-muted mb-0">
+            <strong>Local:</strong> {{ room.name }} | 
+            <strong>Date d'examen:</strong> <span id="selected-date-display">{{ today }}</span> | 
+            <strong>Session:</strong> {{ exam.label }} | 
+            <strong>Période:</strong> {{ exam.session_type }}
+          </p>
+        </div>
+        <div class="btn-group" role="group">
+          <a href="{{ url_for('supervisor_dashboard') }}" class="btn btn-outline-secondary">Retour</a>
+          <a href="{{ url_for('messages') }}" class="btn btn-info" title="Envoyer un message">📬 Message</a>
+          <button class="btn btn-success" onclick="savePresence()">Enregistrer la présence</button>
+          <div class="dropdown">
+            <button class="btn btn-primary dropdown-toggle" type="button" id="downloadDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+              Télécharger
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="downloadDropdown">
+              <li><a class="dropdown-item" href="#" onclick="downloadPresence()">CSV</a></li>
+              <li><a class="dropdown-item" href="#" onclick="downloadAsXLS()">XLS</a></li>
+              <li><a class="dropdown-item" href="#" onclick="downloadAsPDF()">PDF</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      <h5 class="card-title">👥 Liste des étudiants</h5>
+      <div class="students-list">
+        {% for assignment in assignments %}
+        <div class="student-item {% if assignment.presence_status == 'present' %}present{% elif assignment.presence_status == 'absent' %}absent{% endif %}">
+          <div class="student-info">
+            <div class="student-name">Place {{ assignment.seat_number }} - {{ assignment.full_name }}</div>
+            <div class="student-seat">Matricule: {{ assignment.matricule or 'N/A' }}</div>
+          </div>
+          <div class="student-status" id="status-{{ assignment.assignment_id }}">
+            <div class="status-buttons">
+              <button type="button" class="status-present {% if assignment.presence_status == 'present' %}active{% else %}inactive{% endif %}" title="Marquer présent">PRESENT</button>
+              <button type="button" class="status-absent {% if assignment.presence_status == 'absent' or not assignment.presence_status %}active{% else %}inactive{% endif %}" title="Marquer absent">ABSENT</button>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+  // Remettre le focus sur le champ de scan après soumission
+  document.getElementById('qr-input').focus();
+
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const canvasContext = canvas.getContext('2d');
+  const cameraContainer = document.getElementById('camera-container');
+  const startCameraBtn = document.getElementById('start-camera');
+  const qrInput = document.getElementById('qr-input');
+  let scanning = false;
+
+  const stopCameraBtn = document.getElementById('stop-camera');
+
+  startCameraBtn.addEventListener('click', async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert('Votre navigateur ne supporte pas l\'accès à la caméra. Utilisez la saisie manuelle du QR code.');
+      return;
+    }
+    try {
+      let stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment'  // Try back camera first
+        } 
+      });
+      video.srcObject = stream;
+      video.play();
+      cameraContainer.style.display = 'block';
+      scanning = true;
+      scanQR();
+    } catch (err) {
+      console.log('Back camera failed, trying any camera:', err);
+      try {
+        // Fallback to any camera
+        let stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        video.play();
+        cameraContainer.style.display = 'block';
+        scanning = true;
+        scanQR();
+      } catch (err2) {
+        alert('Erreur d\'accès à la caméra: ' + err2.message + '. Assurez-vous que la caméra n\'est pas utilisée par une autre application et que les permissions sont accordées. Utilisez la saisie manuelle si nécessaire.');
+      }
+    }
+  });
+
+  stopCameraBtn.addEventListener('click', () => {
+    scanning = false;
+    cameraContainer.style.display = 'none';
+    const stream = video.srcObject;
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+    }
+  });
+
+  function scanQR() {
+    if (!scanning) return;
+
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.height = video.videoHeight;
+      canvas.width = video.videoWidth;
+      canvasContext.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = canvasContext.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+      if (code) {
+        scanQRCode(code.data);
+      } else {
+        requestAnimationFrame(scanQR);
+      }
+    } else {
+      requestAnimationFrame(scanQR);
+    }
+  }
+
+  function scanQRCode(token) {
+    const date = document.getElementById('exam-date').value;
+    if (!date) {
+      alert('Veuillez sélectionner une date d\'examen.');
+      return;
+    }
+    fetch(`/api/validate/${token}?date=${date}`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.status === 'ok') {
+        // Update the UI
+        selectPresence(data.assignment_id, 'present');
+        qrInput.value = '';
+        showResult(`✅ ${data.message} - ${data.student}`, 'success');
+      } else {
+        showResult(`❌ ${data.message}`, 'danger');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      showResult('Erreur de réseau', 'danger');
+    })
+    .finally(() => {
+      // Don't stop scanning, continue for next QR code
+      // scanning = false;
+      // cameraContainer.style.display = 'none';
+      // Stop the camera only if error or manual stop
+      // const stream = video.srcObject;
+      // if (stream) {
+      //   stream.getTracks().forEach(track => track.stop());
+      // }
+    });
+  }
+
+  function scanManual(event) {
+    event.preventDefault();
+    const token = qrInput.value.trim();
+    if (token) {
+      scanQRCode(token);
+    }
+  }
+
+  function showResult(message, type) {
+    const resultDiv = document.getElementById('result');
+    const header = document.querySelector('.scanner-header');
+    if (!resultDiv) {
+      // Create result div if not exists
+      const resultDiv = document.createElement('div');
+      resultDiv.id = 'result';
+      resultDiv.className = 'alert-result';
+      header.parentNode.insertBefore(resultDiv, header.nextSibling);
+    }
+    resultDiv.className = `alert-result alert alert-${type}`;
+    resultDiv.innerHTML = `<strong>${message}</strong>`;
+    resultDiv.style.display = 'block';
+    // Auto hide after 3 seconds
+    setTimeout(() => {
+      resultDiv.style.display = 'none';
+    }, 3000);
+  }
+  function updateDateDisplay() {
+    const dateInput = document.getElementById('exam-date');
+    const display = document.getElementById('selected-date-display');
+    display.textContent = dateInput.value;
+  }
+
+  function selectPresence(assignmentId, status) {
+    const cell = document.getElementById(`status-${assignmentId}`);
+    cell.innerHTML = `
+      <div class="status-buttons">
+        <button type="button" class="status-present ${status === 'present' ? 'active' : 'inactive'}" title="Marquer présent">PRESENT</button>
+        <button type="button" class="status-absent ${status === 'absent' ? 'active' : 'inactive'}" title="Marquer absent">ABSENT</button>
+      </div>
+    `;
+    
+    // Update item class for color
+    const item = cell.closest('.student-item');
+    item.classList.remove('present', 'absent');
+    if (status === 'present') {
+      item.classList.add('present');
+    } else if (status === 'absent') {
+      item.classList.add('absent');
+    }
+
+    // Update stats
+    updateStats();
+  }
+
+  function updateStats() {
+    const presentCount = document.querySelectorAll('.student-item.present').length;
+    const absentCount = document.querySelectorAll('.student-item.absent').length;
+    document.getElementById('present-count').textContent = presentCount;
+    document.getElementById('absent-count').textContent = absentCount;
+  }
+
+  // Event delegation for status buttons
+  document.addEventListener('DOMContentLoaded', function() {
+    const studentsList = document.querySelector('.students-list');
+    if (studentsList) {
+      studentsList.addEventListener('click', function(e) {
+        const button = e.target.closest('.status-present, .status-absent');
+        if (button) {
+          const status = button.classList.contains('status-present') ? 'present' : 'absent';
+          const cell = button.closest('[id^="status-"]');
+          const assignmentId = parseInt(cell.id.replace('status-', ''));
+          selectPresence(assignmentId, status);
+        }
+      });
+    }
+  });
+
+  function savePresence() {
+    const date = document.getElementById('exam-date').value;
+    if (!date) {
+      alert('Veuillez sélectionner une date d\'examen.');
+      return;
+    }
+    
+    // Collect all current statuses
+    const presences = [];
+    const studentItems = document.querySelectorAll('.student-item');
+    studentItems.forEach(item => {
+      const statusCell = item.querySelector('.student-status');
+      const presentBtn = statusCell.querySelector('.status-present');
+      const absentBtn = statusCell.querySelector('.status-absent');
+      let status = null;
+      if (presentBtn && presentBtn.classList.contains('active')) {
+        status = 'present';
+      } else if (absentBtn && absentBtn.classList.contains('active')) {
+        status = 'absent';
+      }
+      if (status) {
+        const assignmentId = parseInt(statusCell.id.replace('status-', ''));
+        presences.push({ assignment_id: assignmentId, status: status });
+      }
+    });
+    
+    if (presences.length === 0) {
+      alert('Aucune présence à enregistrer.');
+      return;
+    }
+    
+    // Send to backend
+    fetch(`/supervisor/room/{{ room.id }}/exam/{{ exam.id }}/save_all_presence`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        exam_date: date,
+        presences: presences
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert(`✅ Présences enregistrées avec succès pour ${data.saved_count} étudiant(s) !`);
+      } else {
+        alert('❌ Erreur lors de l\'enregistrement: ' + data.message);
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('❌ Erreur de réseau lors de l\'enregistrement.');
+    });
+  }
+
+  function downloadPresence() {
+    const date = document.getElementById('exam-date').value;
+    let csv = 'Place,Nom,Matricule,Statut\n';
+    
+    // Collect data from the student list
+    const studentItems = document.querySelectorAll('.student-item');
+    studentItems.forEach(item => {
+      const nameSeat = item.querySelector('.student-name').textContent;
+      const matricule = item.querySelector('.student-seat').textContent.replace('Matricule: ', '');
+      const statusCell = item.querySelector('.student-status');
+      const presentBtn = statusCell.querySelector('.status-present');
+      const absentBtn = statusCell.querySelector('.status-absent');
+      let status = 'pending';
+      if (presentBtn && presentBtn.classList.contains('active')) {
+        status = 'present';
+      } else if (absentBtn && absentBtn.classList.contains('active')) {
+        status = 'absent';
+      }
+      
+      // Extract seat number and name
+      const parts = nameSeat.split(' - ');
+      const seat = parts[0].replace('Place ', '');
+      const name = parts[1] || '';
+      
+      csv += `${seat},"${name}","${matricule}","${status}"\n`;
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `presence_{{ room.name }}_{{ exam.label }}_${date}.csv`.replace(/[^a-zA-Z0-9\-_.]/g, '_');
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+  function downloadAsXLS() {
+    const room_name = '{{ room.name }}';
+    const exam_label = '{{ exam.label }}';
+    const session_type = '{{ exam.session_type }}';
+    const data = getPresenceData();
+    
+    // Créer un workbook
+    const workbook = XLSX.utils.book_new();
+    
+    // Ajouter les informations d'en-tête
+    const infoSheet = XLSX.utils.aoa_to_sheet([
+      [''],
+      ['ISTA GOMBE-MATADI'],
+      ['Liste de présence'],
+      [''],
+      [`Salle: ${room_name}`],
+      [`Session: ${exam_label} (${session_type})`],
+      [`Date: ${new Date().toLocaleDateString('fr-FR')}`],
+      [`Heure: ${new Date().toLocaleTimeString('fr-FR')}`],
+    ]);
+    // Fusionner les cellules du titre
+    const merges = [{s: {r: 1, c: 0}, e: {r: 1, c: 2}}];
+    infoSheet['!merges'] = merges;
+    
+    // Ajouter le tableau des données
+    const dataSheet = XLSX.utils.json_to_sheet(data);
+    
+    // Ajouter les feuilles au workbook
+    XLSX.utils.book_append_sheet(workbook, infoSheet, 'Infos');
+    XLSX.utils.book_append_sheet(workbook, dataSheet, 'Présence');
+    
+    // Ajouter une feuille avec les signatures
+    const signaturesSheet = XLSX.utils.aoa_to_sheet([
+      [],
+      [],
+      ['Signatures'],
+      [],
+      ['Surveillant Responsable de la Salle:', '', 'Surveillants:'],
+      [],
+      ['_____________________', '', '_____________________'],
+      [],
+      ['Nom: ________________', '', 'Nom: ________________'],
+      ['Date: ________________', '', 'Date: ________________']
+    ]);
+    
+    XLSX.utils.book_append_sheet(workbook, signaturesSheet, 'Signatures');
+    
+    // Télécharger le fichier
+    XLSX.writeFile(workbook, `Présence de ${room_name}.xlsx`);
+  }
+
+  function downloadAsPDF() {
+    const room_name = '{{ room.name }}';
+    const exam_label = '{{ exam.label }}';
+    const session_type = '{{ exam.session_type }}';
+    const data = getPresenceData();
+    
+    const opt = {
+      margin: 10,
+      filename: `Présence de ${room_name}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+    };
+    
+    // Créer un contenu personnalisé pour le PDF avec un tableau simplifié
+    const pdfContent = document.createElement('div');
+    pdfContent.style.padding = '20px';
+    
+    // Construire le tableau simplifié
+    let tableHTML = '<table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; border: 1px solid black;">';
+    tableHTML += '<thead><tr style="background-color: #f2f2f2; font-weight: bold;"><th style="border: 1px solid black;">Place</th><th style="border: 1px solid black;">Nom complet</th><th style="border: 1px solid black;">Matricule</th><th style="border: 1px solid black;">Présence</th></tr></thead>';
+    tableHTML += '<tbody>';
+    
+    data.forEach(row => {
+      tableHTML += `<tr><td style="border: 1px solid black;">${row['Place']}</td><td style="border: 1px solid black;">${row['Nom complet']}</td><td style="border: 1px solid black;">${row['Matricule']}</td><td style="border: 1px solid black;">${row['Présence']}</td></tr>`;
+    });
+    
+    tableHTML += '</tbody></table>';
+    
+    pdfContent.innerHTML = `
+      <div style="display: flex; align-items: center; margin-bottom: 20px; gap: 15px;">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo ISTA" style="height: 60px; flex-shrink: 0;">
+        <div style="text-align: left;">
+          <h2 style="margin: 5px 0;">ISTA GOMBE-MATADI</h2>
+          <h3 style="margin: 5px 0;">Liste de présence</h3>
+        </div>
+      </div>
+      <div style="margin-bottom: 20px;">
+        <p style="margin: 5px 0;"><strong>Salle:</strong> ${room_name}</p>
+        <p style="margin: 5px 0;"><strong>Session:</strong> ${exam_label} (${session_type})</p>
+        <p style="margin: 5px 0;"><strong>Date:</strong> ${new Date().toLocaleDateString('fr-FR')}</p>
+        <p style="margin: 5px 0;"><strong>Heure:</strong> ${new Date().toLocaleTimeString('fr-FR')}</p>
+      </div>
+      <div style="margin-top: 20px;">
+        ${tableHTML}
+      </div>
+      <div style="margin-top: 40px;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="width: 45%; text-align: center; vertical-align: top; padding: 20px 10px 0 10px;">
+              <strong>Surveillant Responsable de la Salle</strong><br>
+              <div style="margin-top: 30px; border-top: 1px solid black; padding-top: 5px;">
+                Nom: ________________<br>
+                Signature: ________________<br>
+                Date: ________________
+              </div>
+            </td>
+            <td style="width: 10%;"></td>
+            <td style="width: 45%; text-align: center; vertical-align: top; padding: 20px 10px 0 10px;">
+              <strong>Surveillants</strong><br>
+              <div style="margin-top: 30px; border-top: 1px solid black; padding-top: 5px;">
+                Nom: ________________<br>
+                Signature: ________________<br>
+                Nom: ________________<br>
+                Signature: ________________<br>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+    `;
+    
+    html2pdf().set(opt).from(pdfContent).save();
+  }
+
+  function getPresenceData() {
+    const data = [];
+    const studentItems = document.querySelectorAll('.student-item');
+    studentItems.forEach(item => {
+      const nameSeat = item.querySelector('.student-name').textContent;
+      const matricule = item.querySelector('.student-seat').textContent.replace('Matricule: ', '');
+      const statusCell = item.querySelector('.student-status');
+      const presentBtn = statusCell.querySelector('.status-present');
+      const absentBtn = statusCell.querySelector('.status-absent');
+      let status = 'pending';
+      if (presentBtn && presentBtn.classList.contains('active')) {
+        status = 'PRESENT';
+      } else if (absentBtn && absentBtn.classList.contains('active')) {
+        status = 'ABSENT';
+      }
+      
+      // Extract seat number and name
+      const parts = nameSeat.split(' - ');
+      const seat = parts[0].replace('Place ', '');
+      const name = parts[1] || '';
+      
+      data.push({
+        'Place': seat,
+        'Nom complet': name,
+        'Matricule': matricule,
+        'Présence': status
+      });
+    });
+    
+    return data;
+  }
+{% endblock %}

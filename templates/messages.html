@@ -1,0 +1,465 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .messages-container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .message-item {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-left: 4px solid #007bff;
+    transition: all 0.2s;
+  }
+  .message-item.unread {
+    border-left-color: #28a745;
+    background: #f8fff9;
+  }
+  .message-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .message-subject {
+    font-weight: 600;
+    color: #333;
+  }
+  .message-meta {
+    font-size: 0.85rem;
+    color: #666;
+  }
+  .message-content {
+    color: #555;
+    margin-bottom: 10px;
+  }
+  .message-actions {
+    display: flex;
+    gap: 10px;
+  }
+  .message-item.sent {
+    border-left-color: #6c757d;
+    background: #f8f9fa;
+  }
+  .notification-item {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-left: 4px solid #ffc107;
+    transition: all 0.2s;
+  }
+  .notification-item.unread {
+    border-left-color: #fd7e14;
+    background: #fff3cd;
+  }
+  .notification-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  .notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .notification-message {
+    color: #333;
+    font-weight: 500;
+  }
+  .notification-meta {
+    font-size: 0.85rem;
+    color: #666;
+  }
+  .notification-actions {
+    display: flex;
+    gap: 10px;
+  }
+  .nav-tabs .nav-link {
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #6c757d;
+    font-weight: 500;
+  }
+  .nav-tabs .nav-link.active {
+    border-bottom-color: #007bff;
+    color: #007bff;
+    background: none;
+  }
+  .nav-tabs .nav-link:hover {
+    border-bottom-color: #007bff;
+    color: #007bff;
+  }
+  .tab-content {
+    padding-top: 20px;
+  }
+</style>
+
+<div class="messages-container">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2>📬 Messagerie</h2>
+      <p class="text-muted">Échangez avec l'administration concernant les examens</p>
+    </div>
+    <div>
+      {% if not is_admin %}
+      <a href="{{ url_for('send_message') }}" class="btn btn-primary">
+        ✉️ Nouveau message
+      </a>
+      {% else %}
+      <a href="{{ url_for('send_message_admin') }}" class="btn btn-primary">
+        ✉️ Nouveau message
+      </a>
+      {% endif %}
+      {% if is_admin and unread_count > 0 %}
+      <span class="badge bg-success">{{ unread_count }} non lu{{ 's' if unread_count > 1 else '' }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Onglets pour boîte de réception et messages envoyés -->
+  <ul class="nav nav-tabs" id="messagesTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="received-tab" data-bs-toggle="tab" data-bs-target="#received" type="button" role="tab" aria-controls="received" aria-selected="true">
+        📥 Boîte de réception
+        {% if is_admin and unread_count > 0 %}
+        <span class="badge bg-danger ms-1">{{ unread_count }}</span>
+        {% endif %}
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="sent-tab" data-bs-toggle="tab" data-bs-target="#sent" type="button" role="tab" aria-controls="sent" aria-selected="false">
+        📤 Messages envoyés
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="notifications-tab" data-bs-toggle="tab" data-bs-target="#notifications" type="button" role="tab" aria-controls="notifications" aria-selected="false">
+        🔔 Notifications
+        {% if unread_notifications_count > 0 %}
+        <span class="badge bg-warning ms-1">{{ unread_notifications_count }}</span>
+        {% endif %}
+      </button>
+    </li>
+
+  <div class="tab-content" id="messagesTabsContent">
+    <!-- Onglet Boîte de réception -->
+    <div class="tab-pane fade show active" id="received" role="tabpanel" aria-labelledby="received-tab">
+      {% if received_messages %}
+      <div class="messages-list">
+        {% for message in received_messages %}
+        <div class="message-item {% if not message.is_read %}unread{% endif %}" {% if not message.is_read %}onclick="markAsReadOnClick({{ message.id }}, this)"{% endif %}>
+          <div class="message-header">
+            <div class="message-subject">
+              {{ message.subject }}
+              {% if not message.is_read %}
+                <span class="badge-unread">Nouveau</span>
+              {% endif %}
+            </div>
+            <div class="message-meta">
+              De: {{ message.sender_name }}
+              {% if message.recipient_name %}→ {{ message.recipient_name }}{% endif %}
+              | {{ message.created_at[:16] }}
+            </div>
+          </div>
+          
+          {% if message.exam_label or message.room_name %}
+          <div class="message-meta mb-2">
+            {% if message.exam_label %}Session: {{ message.exam_label }}{% endif %}
+            {% if message.room_name %} | Local: {{ message.room_name }}{% endif %}
+          </div>
+          {% endif %}
+          
+          <div class="message-content">
+            {{ message.message | truncate(200) }}
+          </div>
+          
+          <div class="message-actions">
+            {% if is_admin and not message.is_read %}
+            <button class="btn btn-sm btn-outline-success" onclick="markAsRead({{ message.id }})">
+              ✓ Marquer comme lu
+            </button>
+            {% endif %}
+            {% if is_admin %}
+            <a href="{{ url_for('reply_message', message_id=message.id) }}" class="btn btn-sm btn-outline-primary">
+              ↩️ Répondre
+            </a>
+            {% endif %}
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteMessage({{ message.id }})">
+              🗑️ Supprimer
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="text-center py-5">
+        <div class="text-muted">
+          <h4>📭 Aucun message</h4>
+          <p>
+            {% if is_admin %}
+              Aucun message n'a encore été envoyé par les surveillants.
+            {% else %}
+              Vous n'avez pas encore envoyé de message.
+            {% endif %}
+          </p>
+          {% if is_admin %}
+          <a href="{{ url_for('send_message_admin') }}" class="btn btn-primary">
+            ✉️ Envoyer un message
+          </a>
+          {% else %}
+          <a href="{{ url_for('send_message') }}" class="btn btn-primary">
+            ✉️ Envoyer votre premier message
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+    <!-- Onglet Messages envoyés -->
+    <div class="tab-pane fade" id="sent" role="tabpanel" aria-labelledby="sent-tab">
+      {% if sent_messages %}
+        <div class="messages-list">
+          {% for message in sent_messages %}
+          <div class="message-item sent">
+            <div class="message-header">
+              <div class="message-subject">
+                {{ message.subject }}
+              </div>
+              <div class="message-meta">
+                {% if message.recipient_name %}
+                À: {{ message.recipient_name }}
+                {% else %}
+                À: Administration
+                {% endif %}
+                | {{ message.created_at[:16] }}
+              </div>
+            </div>
+            
+            {% if message.exam_label or message.room_name %}
+            <div class="message-meta mb-2">
+              {% if message.exam_label %}Session: {{ message.exam_label }}{% endif %}
+              {% if message.room_name %} | Local: {{ message.room_name }}{% endif %}
+            </div>
+            {% endif %}
+            
+            <div class="message-content">
+              {{ message.message | truncate(200) }}
+            </div>
+            
+            <div class="message-actions">
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteMessage({{ message.id }})">
+                🗑️ Supprimer
+              </button>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-center py-5">
+          <div class="text-muted">
+            <h4>📭 Aucun message envoyé</h4>
+            <p>Vous n'avez pas encore envoyé de message.</p>
+            {% if not is_admin %}
+            <a href="{{ url_for('send_message') }}" class="btn btn-primary">
+              ✉️ Envoyer votre premier message
+            </a>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Onglet Notifications -->
+    <div class="tab-pane fade" id="notifications" role="tabpanel" aria-labelledby="notifications-tab">
+      {% if notifications %}
+      <div class="notifications-list">
+        {% for notification in notifications %}
+        <div class="notification-item {% if not notification.is_read %}unread{% endif %}">
+          <div class="notification-header">
+            <div class="notification-message">
+              {{ notification.message }}
+              {% if not notification.is_read %}
+                <span class="badge bg-warning ms-2">Nouveau</span>
+              {% endif %}
+            </div>
+            <div class="notification-meta">
+              {{ notification.created_at[:16] }}
+            </div>
+          </div>
+
+          <div class="notification-actions">
+            {% if not notification.is_read %}
+            <button class="btn btn-sm btn-outline-warning" onclick="markNotificationAsRead({{ notification.id }})">
+              ✓ Marquer comme lu
+            </button>
+            {% endif %}
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteNotification({{ notification.id }})">
+              🗑️ Supprimer
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+        <div class="text-center py-5">
+          <div class="text-muted">
+            <h4>🔔 Aucune notification</h4>
+            <p>Vous n'avez pas de notifications pour le moment.</p>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+function markAsRead(messageId) {
+  fetch(`/messages/${messageId}/mark_read`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      location.reload();
+    } else {
+      alert('Erreur lors de la mise à jour');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Erreur de réseau');
+  });
+}
+
+function deleteMessage(messageId) {
+  if (!confirm('Êtes-vous sûr de vouloir supprimer ce message ?')) {
+    return;
+  }
+  
+  fetch(`/messages/${messageId}/delete`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      location.reload();
+    } else {
+      alert('Erreur lors de la suppression');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Erreur de réseau');
+  });
+}
+
+function markNotificationAsRead(notificationId) {
+  fetch(`/notifications/${notificationId}/mark_read`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      location.reload();
+    } else {
+      alert('Erreur lors de la mise à jour');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Erreur de réseau');
+  });
+}
+
+function markAsReadOnClick(messageId, element) {
+  // Marquer le message comme lu via l'API
+  fetch(`/messages/${messageId}/mark_read`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Mettre à jour l'apparence du message
+      element.classList.remove('unread');
+      element.onclick = null; // Supprimer l'événement onclick
+      
+      // Supprimer le badge "Nouveau" s'il existe
+      const badge = element.querySelector('.badge-unread');
+      if (badge) {
+        badge.remove();
+      }
+      
+      // Supprimer le bouton "Marquer comme lu" s'il existe
+      const markReadButton = element.querySelector('button[onclick*="markAsRead"]');
+      if (markReadButton) {
+        markReadButton.remove();
+      }
+    } else {
+      console.error('Erreur lors de la mise à jour du message');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+  });
+}
+
+function deleteNotification(notificationId) {
+  if (!confirm('Êtes-vous sûr de vouloir supprimer cette notification ?')) {
+    return;
+  }
+  
+  fetch(`/notifications/${notificationId}/delete`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      location.reload();
+    } else {
+      alert('Erreur lors de la suppression');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Erreur de réseau');
+  });
+}
+
+// Activer automatiquement l'onglet Messages envoyés si le paramètre tab=sent est présent
+document.addEventListener('DOMContentLoaded', function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('tab') === 'sent') {
+    const sentTab = document.getElementById('sent-tab');
+    const sentPane = document.getElementById('sent');
+    if (sentTab && sentPane) {
+      // Désactiver l'onglet actif
+      document.querySelector('.nav-link.active').classList.remove('active');
+      document.querySelector('.tab-pane.active').classList.remove('active', 'show');
+      
+      // Activer l'onglet Messages envoyés
+      sentTab.classList.add('active');
+      sentPane.classList.add('active', 'show');
+    }
+  }
+});
+</script>
+{% endblock %}

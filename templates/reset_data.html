@@ -66,9 +66,9 @@
             <input class="form-control" name="admin_password" type="password" placeholder="Entrez votre mot de passe administrateur" required autocomplete="current-password">
             <small class="text-muted">Vous devez entrer votre mot de passe administrateur pour confirmer cette action.</small>
           </div>
-          <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-danger">Supprimer les données sélectionnées</button>
-            <a href="{{ url_for('index') }}" class="btn btn-secondary">Annuler</a>
+          <div class="btn-group w-100">
+            <button type="submit" class="btn btn-danger">⚠️ Supprimer les données</button>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">❌ Annuler</a>
           </div>
         </form>
       </div>

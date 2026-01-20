@@ -6,7 +6,7 @@
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center">
           <h5 class="card-title mb-0">📚 Archives des affectations</h5>
-          <a href="{{ url_for('archive_assignments') }}" class="btn btn-primary">Nouvelle archive</a>
+          <a href="{{ url_for('archive_assignments') }}" class="btn btn-primary">➕ Nouvelle archive</a>
         </div>
       </div>
     </div>
@@ -40,9 +40,9 @@
             <label class="form-label">Date fin</label>
             <input type="date" class="form-control" name="period_end" value="{{ period_end_filter }}">
           </div>
-          <div class="col-md-3 d-flex align-items-end">
-            <button type="submit" class="btn btn-outline-primary me-2">Filtrer</button>
-            <a href="{{ url_for('view_archives') }}" class="btn btn-outline-secondary">Réinitialiser</a>
+          <div class="col-md-3 d-flex align-items-end gap-2">
+            <button type="submit" class="btn btn-outline-primary flex-grow-1">🔍 Filtrer</button>
+            <a href="{{ url_for('view_archives') }}" class="btn btn-outline-secondary">↺ Réinitialiser</a>
           </div>
         </form>
       </div>
@@ -84,7 +84,7 @@
                 </td>
                 <td>
                   <a href="{{ url_for('archive_details', archive_name=archive.archive_name) }}?exam_id={{ archive.exam_id }}&period_start={{ archive.period_start_date }}&period_end={{ archive.period_end_date }}" 
-                     class="btn btn-sm btn-outline-primary">Voir détails</a>
+                     class="btn btn-sm btn-outline-primary" title="Voir les détails">👁️ Détails</a>
                 </td>
               </tr>
               {% endfor %}
@@ -106,8 +106,5 @@
   </div>
 </div>
 {% endblock %}
-
-
-
 
 

@@ -196,6 +196,7 @@
                   {% if exam %}
                     <a class="btn btn-sm btn-outline-primary" href="{{ url_for('room_badges', room_id=room['id'], exam_id=exam['id']) }}" title="Badges">Badges</a>
                     <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('room_list', room_id=room['id'], exam_id=exam['id']) }}" title="Liste">Liste</a>
+                    <a class="btn btn-sm btn-success" href="{{ url_for('room_scan', room_id=room['id'], exam_id=exam['id']) }}" title="Pointage QR">📱 Pointage</a>
                     <a class="btn btn-sm btn-outline-info" href="{{ url_for('room_presence', room_id=room['id'], exam_id=exam['id']) }}" title="Présence">Présence</a>
                   {% else %}
                     <span class="text-muted small">Sélectionner une session</span>
@@ -208,7 +209,7 @@
             </tr>
           {% else %}
             <tr>
-              <td colspan="{% if exam %}9{% else %}7{% endif %}" class="text-center text-muted py-4">
+              <td colspan="{% if exam %}10{% else %}7{% endif %}" class="text-center text-muted py-4">
                 <i>Aucun local configuré pour le moment.</i>
               </td>
             </tr>

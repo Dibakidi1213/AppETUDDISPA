@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="card-title mb-0">🗂️ Assignation manuelle des surveillants</h5>
+      {% if assign_date %}
+      <a href="{{ url_for('print_supervisors', date=assign_date) }}" class="btn btn-primary" target="_blank">🖨️ Imprimer pour {{ assign_date }}</a>
+      {% endif %}
+    </div>
+    
+    <form method="post" class="mb-4">
+      <div class="row g-3">
+        <div class="col-md-2">
+          <label class="form-label"><strong>Date de l'examen</strong></label>
+          <input type="date" class="form-control" name="assign_date" value="{{ assign_date or '' }}" required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label"><strong>Session/Examen</strong></label>
+          <select class="form-select" name="exam_id" required>
+            <option value="">-- Choisir --</option>
+            {% for exam in exams %}
+            <option value="{{ exam.id }}" {% if exam.id == exam_id %}selected{% endif %}>
+              [{{ exam.session_type }}] {{ exam.label }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label"><strong>Local</strong></label>
+          <select class="form-select" name="room_id" required>
+            <option value="">-- Choisir --</option>
+            {% for room in rooms %}
+            <option value="{{ room.id }}" {% if room.id == room_id %}selected{% endif %}>{{ room.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      
+      <div class="row g-3 mt-2">
+        <div class="col-md-8">
+          <label class="form-label"><strong>Surveillant(s) et Chef de Salle</strong></label>
+          <div class="border rounded p-3" style="height: 200px; overflow-y: auto;">
+            {% for user in users %}
+            <div class="form-check mb-2">
+              <input class="form-check-input supervisor-checkbox" type="checkbox" name="user_ids" value="{{ user.id }}" id="user_{{ user.id }}">
+              <label class="form-check-label d-flex align-items-center" for="user_{{ user.id }}">
+                <span>{{ user.username }}</span>
+                <input type="radio" name="room_leader_id" value="{{ user.id }}" class="ms-2" title="Désigner comme Chef de Salle">
+                <small class="text-muted ms-1">👑 Chef</small>
+              </label>
+            </div>
+            {% endfor %}
+          </div>
+          <small class="form-text text-muted d-block mt-2">
+            💡 <strong>Instructions:</strong><br>
+            • Cochez les surveillants à assigner<br>
+            • Sélectionnez un seul chef de salle (👑) parmi les surveillants cochés<br>
+            • Le chef de salle sera le seul autorisé à pointer les présences
+          </small>
+        </div>
+        <div class="col-md-4 d-flex flex-column justify-content-end">
+          <button type="submit" class="btn btn-success w-100 mb-2">➕ Assigner les surveillance(s)</button>
+          <div class="alert alert-info p-2 mb-0" role="alert">
+            <strong>Fonctionnement:</strong><br>
+            1️⃣ Sélectionner surveillant(s)<br>
+            2️⃣ Cliquer "Assigner"<br>
+            3️⃣ Tous les sélectionnés sont assignés au même local
+          </div>
+        </div>
+      </div>
+    </form>
+    
+    {% if assign_date %}
+    <hr>
+    <div class="mb-3">
+      <h6 class="mb-3">
+        <strong>📅 Affectations pour la date:</strong> 
+        <span class="badge bg-info text-dark">{{ assign_date }}</span>
+      </h6>
+    </div>
+    
+    {% if assignments %}
+    <div class="table-responsive">
+      <table class="table table-bordered table-striped table-sm">
+        <thead class="table-dark">
+          <tr>
+            <th style="width: 12%;">Local</th>
+            <th style="width: 18%;">Session</th>
+            <th style="width: 28%;">Examen</th>
+            <th style="width: 22%;">Surveillants</th>
+            <th style="width: 20%;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% set grouped = {} %}
+          {% for a in assignments %}
+            {% set key = (a.room_name, a.session_type, a.exam_label) %}
+            {% if key not in grouped %}
+              {% set _ = grouped.update({key: []}) %}
+            {% endif %}
+            {% set _ = grouped[key].append(a) %}
+          {% endfor %}
+          
+          {% for (room_name, session_type, exam_label), group in grouped.items() %}
+          <tr>
+            <td><strong>{{ room_name }}</strong></td>
+            <td><span class="badge bg-info">{{ session_type or '?' }}</span></td>
+            <td>{{ exam_label }}</td>
+            <td>
+              {% for supervisor in group %}
+                {% if supervisor.is_room_leader %}
+                  <span class="badge bg-warning text-dark me-1" title="Chef de Salle">👑 {{ supervisor.username }}</span>
+                {% else %}
+                  <span class="badge bg-success me-1">{{ supervisor.username }}</span>
+                {% endif %}
+              {% endfor %}
+            </td>
+            <td>
+              {% for supervisor in group %}
+                <form method="post" style="display:inline;" onsubmit="return confirm('Retirer ' + '{{ supervisor.username }}' + ' ?');">
+                  <input type="hidden" name="remove_assignment_id" value="{{ supervisor.id }}">
+                  <button class="btn btn-sm btn-danger btn-outline" type="submit" title="Retirer {{ supervisor.username }}">✕</button>
+                </form>
+              {% endfor %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="alert alert-info mt-3">
+      <strong>Total:</strong> {{ assignments|length }} assignation(s) pour cette date
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+      Aucune affectation pour cette date. Utilisez le formulaire ci-dessus pour en ajouter.
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="alert alert-secondary">
+      <strong>💡 Info:</strong> Sélectionnez une date pour voir et gérer les affectations.
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+  .btn-outline {
+    border: 1px solid currentColor;
+  }
+  
+  @media print {
+    form, .table-responsive, .alert, .btn {
+      display: none;
+    }
+  }
+</style>
+{% endblock %}

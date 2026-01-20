@@ -4,17 +4,18 @@
   <div class="card-body">
     <div class="d-flex justify-content-between align-items-center">
       <div>
-        <h5 class="card-title mb-0">Liste des étudiants - {{ promotion.name }}</h5>
-        <small class="text-muted">Promotion ID: {{ promotion.id }}</small>
+        <h5 class="card-title mb-0">👥 Liste des étudiants - {{ promotion.name }}</h5>
+        <small class="text-muted">Promotion ID: <strong>{{ promotion.id }}</strong></small>
       </div>
-      <div class="d-flex gap-2">
+      <div class="btn-group">
         {% if students|length > 0 %}
-        <a href="{{ url_for('clear_promotion_students', promotion_id=promotion.id) }}" class="btn btn-outline-danger">
-          🗑️ Effacer tous les étudiants
+        <a href="{{ url_for('clear_promotion_students', promotion_id=promotion.id) }}" class="btn btn-outline-danger" 
+           onclick="return confirm('Êtes-vous sûr de vouloir effacer tous les étudiants ?');" title="Effacer tous les étudiants">
+          🗑️ Effacer tous
         </a>
         {% endif %}
-        <a href="{{ url_for('promotions') }}" class="btn btn-outline-secondary">
-          ← Retour aux promotions
+        <a href="{{ url_for('promotions') }}" class="btn btn-outline-secondary" title="Retour aux promotions">
+          ← Retour
         </a>
       </div>
     </div>
@@ -23,7 +24,7 @@
 
 <div class="card shadow-sm mb-4">
   <div class="card-body">
-    <h5 class="card-title mb-3">Ajouter un étudiant</h5>
+    <h5 class="card-title">➕ Ajouter un étudiant</h5>
     <form method="post" class="row g-3">
       <div class="col-md-4">
         <label for="full_name" class="form-label">Nom complet *</label>
@@ -31,19 +32,19 @@
       </div>
       <div class="col-md-3">
         <label for="matricule" class="form-label">Matricule</label>
-        <input type="text" class="form-control" id="matricule" name="matricule" placeholder="Laissé vide pour générer automatiquement">
+        <input type="text" class="form-control" id="matricule" name="matricule" placeholder="Auto">
         <small class="text-muted">Généré automatiquement si vide</small>
       </div>
       <div class="col-md-3">
         <label for="sexe" class="form-label">Sexe</label>
         <select class="form-select" id="sexe" name="sexe">
           <option value="">-- Non spécifié --</option>
-          <option value="M">Masculin</option>
-          <option value="F">Féminin</option>
+          <option value="M">👨 Masculin</option>
+          <option value="F">👩 Féminin</option>
         </select>
       </div>
       <div class="col-md-2 d-flex align-items-end">
-        <button type="submit" class="btn btn-primary w-100">Ajouter</button>
+        <button type="submit" class="btn btn-primary w-100">✓ Ajouter</button>
       </div>
     </form>
   </div>
@@ -53,29 +54,37 @@
   <div class="card-body">
     {% if students %}
     <div class="table-responsive">
-      <table class="table table-striped table-hover" style="line-height: 1.4;">
+      <table class="table table-striped table-hover">
         <thead class="table-dark">
           <tr>
-            <th style="padding: 10px;">#</th>
-            <th style="padding: 10px;">Matricule</th>
-            <th style="padding: 10px;">Nom complet</th>
-            <th style="padding: 10px;">Sexe</th>
+            <th style="width: 50px;">#</th>
+            <th>Matricule</th>
+            <th>Nom complet</th>
+            <th style="width: 80px;">Sexe</th>
           </tr>
         </thead>
         <tbody>
           {% for student in students %}
           <tr>
-            <td style="padding: 10px;">{{ loop.index }}</td>
-            <td style="padding: 10px;">{{ student.matricule or '-' }}</td>
-            <td style="padding: 10px;"><strong>{{ student.full_name }}</strong></td>
-            <td style="padding: 10px;">{{ student.sexe or '-' }}</td>
+            <td><strong>{{ loop.index }}</strong></td>
+            <td><code>{{ student.matricule or '-' }}</code></td>
+            <td><strong>{{ student.full_name }}</strong></td>
+            <td>
+              {% if student.sexe == 'M' %}
+                <span class="badge bg-primary">👨 M</span>
+              {% elif student.sexe == 'F' %}
+                <span class="badge bg-danger">👩 F</span>
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </td>
           </tr>
           {% endfor %}
         </tbody>
         <tfoot>
-          <tr class="table-info">
-            <td colspan="4" style="padding: 10px; font-weight: bold; text-align: center;">
-              Total: {{ students|length }} étudiant{% if students|length > 1 %}s{% endif %}
+          <tr class="table-info" style="font-weight: bold;">
+            <td colspan="4" style="text-align: center; padding: 0.75rem;">
+              📊 Total: <strong>{{ students|length }}</strong> étudiant{% if students|length > 1 %}s{% endif %}
             </td>
           </tr>
         </tfoot>
@@ -83,11 +92,11 @@
     </div>
     {% else %}
     <div class="alert alert-info">
-      <h6 class="alert-heading">Aucun étudiant</h6>
+      <h6 class="alert-heading">ℹ️ Aucun étudiant</h6>
       <p class="mb-0">Cette promotion ne contient aucun étudiant pour le moment.</p>
       <hr>
       <p class="mb-0">
-        <a href="{{ url_for('upload_students') }}" class="alert-link">Importer des étudiants</a> pour cette promotion.
+        <a href="{{ url_for('upload_students') }}" class="btn btn-sm btn-outline-primary">📤 Importer des étudiants</a>
       </p>
     </div>
     {% endif %}

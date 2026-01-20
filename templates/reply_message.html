@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .reply-container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .original-message {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-left: 4px solid #007bff;
+  }
+  .reply-form {
+    background: white;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+</style>
+
+<div class="reply-container">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2>↩️ Répondre au message</h2>
+      <p class="text-muted">Répondre à {{ message.sender_name }}</p>
+    </div>
+    <a href="{{ url_for('messages') }}" class="btn btn-outline-secondary">← Retour</a>
+  </div>
+
+  <!-- Message original -->
+  <div class="original-message">
+    <h5>{{ message.subject }}</h5>
+    <div class="text-muted mb-2">
+      De: {{ message.sender_name }} | {{ message.created_at[:16] }}
+    </div>
+    <div>
+      {{ message.message }}
+    </div>
+  </div>
+
+  <!-- Formulaire de réponse -->
+  <div class="reply-form">
+    <form method="post">
+      <div class="mb-3">
+        <label for="subject" class="form-label">Sujet de la réponse *</label>
+        <input type="text" class="form-control" id="subject" name="subject" required
+               value="Re: {{ message.subject }}">
+      </div>
+
+      <div class="mb-3">
+        <label for="message" class="form-label">Votre réponse *</label>
+        <textarea class="form-control" id="message" name="message" rows="6" required
+                  placeholder="Tapez votre réponse..."></textarea>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">
+          📤 Envoyer la réponse
+        </button>
+        <a href="{{ url_for('messages') }}" class="btn btn-outline-secondary">Annuler</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% set assignments_raw = [
+    (1, 'Mathématiques', '2023-10-01 10:00:00'),
+    (2, 'Physique', '2023-10-02 11:00:00'),
+    (3, 'Chimie', '2023-10-03 09:30:00')
+] %}
+
+{% set assignments = [] %}
+{% for row in assignments_raw %}
+    {% set _ = assignments.append({'id': row[0], 'subject': row[1], 'due_date': row[2]}) %}
+{% endfor %}
+
+<h2>Mes devoirs</h2>
+<table class="table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Sujet</th>
+      <th>Date d'échéance</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for assignment in assignments %}
+    <tr>
+      <td>{{ assignment.id }}</td>
+      <td>{{ assignment.subject }}</td>
+      <td>{{ assignment.due_date }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>

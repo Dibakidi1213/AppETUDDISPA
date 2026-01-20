@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+  <div class="col-md-12">
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">📚 Archives des affectations des surveillants</h5>
+          <a href="{{ url_for('archive_supervisor_assignments') }}" class="btn btn-primary">➕ Nouvelle archive</a>
+        </div>
+      </div>
+    </div>
+    
+    {% if archives %}
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Nom de l'archive</th>
+                <th>Date d'examen</th>
+                <th>Nombre d'affectations</th>
+                <th>Date d'archivage</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for archive in archives %}
+              <tr>
+                <td><strong>{{ archive.archive_name }}</strong></td>
+                <td>{{ archive.exam_date }}</td>
+                <td><span class="badge bg-info">{{ archive.count }}</span></td>
+                <td>{{ archive.archived_at[:16] }}</td>
+                <td>
+                  <a href="{{ url_for('view_supervisor_archive_detail', archive_name=archive.archive_name, exam_date=archive.exam_date) }}" 
+                     class="btn btn-sm btn-outline-primary">👁️ Voir</a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="card shadow-sm">
+      <div class="card-body text-center">
+        <p class="text-muted mb-3">Aucune archive trouvée.</p>
+        <a href="{{ url_for('archive_supervisor_assignments') }}" class="btn btn-primary">
+          Créer la première archive
+        </a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

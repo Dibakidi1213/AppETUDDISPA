@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="card-title mb-0">📋 Listes de surveillants par local - {{ print_date }}</h5>
+      <button onclick="window.print()" class="btn btn-primary">🖨️ Imprimer</button>
+    </div>
+    
+    {% if not supervisors_by_room and not supervisors_by_room_and_exam %}
+    <div class="alert alert-warning" role="alert">
+      Aucun surveillant affecté pour la date <strong>{{ print_date }}</strong>.
+    </div>
+    {% else %}
+    
+    <!-- Affichage groupé par local sur une seule page -->
+    {% if supervisors_by_room_and_exam %}
+    <div style="border: 2px solid #333; padding: 20px; background: white;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo ISTA" style="height: 50px; margin-bottom: 10px;">
+        <h3 style="margin: 0; font-size: 18px; font-weight: bold;">INSTITUT SUPÉRIEUR DE TECHNIQUES APPLIQUÉES</h3>
+        <h3 style="margin: 0; font-size: 18px; font-weight: bold;">DE GOMBE MATADI / MBANZA NGUNGU - KOLA</h3>
+        <h3 style="margin: 0; font-size: 18px; font-weight: bold;">ISTA - GOMBE MATADI</h3>
+        <p style="margin: 5px 0; font-size: 12px;">---</p>
+        <h4 style="margin: 10px 0; font-size: 16px;">LISTES DES SURVEILLANTS</h4>
+        <p style="margin: 5px 0; font-size: 12px;">Date: <strong>{{ print_date }}</strong></p>
+      </div>
+      
+      {% for room_name, exams_dict in supervisors_by_room_and_exam.items() %}
+      <div style="margin-bottom: 25px; border-top: 2px solid #999; padding-top: 15px;">
+        <p style="margin: 5px 0 10px 0; font-size: 13px; font-weight: bold;">📍 LOCAL: {{ room_name.upper() }}</p>
+        
+        {% for exam_key, supervisors in exams_dict.items() %}
+        <div style="margin-left: 15px; margin-bottom: 12px;">
+          <p style="margin: 5px 0 5px 0; font-size: 11px;"><strong>{{ exam_key }}</strong>: 
+            {% for supervisor in supervisors %}
+              {{ supervisor.username }}{% if not loop.last %}, {% endif %}
+            {% endfor %}
+          </p>
+        </div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+      
+      <div style="margin-top: 30px; text-align: right; font-size: 11px;">
+        <p>Signature du responsable / Jury: ___________________</p>
+      </div>
+    </div>
+    
+    {% elif supervisors_by_room %}
+    <div style="border: 2px solid #333; padding: 20px; background: white;">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo ISTA" style="height: 50px; margin-bottom: 10px;">
+        <h3 style="margin: 0; font-size: 18px; font-weight: bold;">INSTITUT SUPÉRIEUR DE TECHNIQUES APPLIQUÉES</h3>
+        <h3 style="margin: 0; font-size: 18px; font-weight: bold;">DES GOMBE MATADI / MBANZA NGUNGU</h3>
+        <p style="margin: 5px 0; font-size: 12px;">---</p>
+        <h4 style="margin: 10px 0; font-size: 16px;">LISTES DES SURVEILLANTS</h4>
+        <p style="margin: 5px 0; font-size: 12px;">Date: <strong>{{ print_date }}</strong></p>
+      </div>
+      
+      {% for room_name, assignments in supervisors_by_room.items() %}
+      <div style="margin-bottom: 25px; border-top: 2px solid #999; padding-top: 15px;">
+        <p style="margin: 5px 0 10px 0; font-size: 13px; font-weight: bold;">📍 LOCAL: {{ room_name.upper() }}</p>
+        
+        <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-left: 15px;">
+          <tbody>
+            {% for assignment in assignments %}
+            <tr>
+              <td style="padding: 3px 0; width: 20%;"><strong>{{ assignment.session_type or '?' }}</strong></td>
+              <td style="padding: 3px 8px; width: 40%;">{{ assignment.exam_label }}</td>
+              <td style="padding: 3px 0;">{{ assignment.username }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endfor %}
+      
+      <div style="margin-top: 30px; text-align: right; font-size: 11px;">
+        <p>Signature du responsable: ___________________</p>
+      </div>
+    </div>
+    {% endif %}
+    
+    {% endif %}
+    
+    <hr>
+    <a href="{{ url_for('assign_supervisors_manual') }}" class="btn btn-secondary">← Retour</a>
+  </div>
+</div>
+
+<style>
+  @media print {
+    .btn, .card-body > hr, .card-body > a {
+      display: none;
+    }
+  }
+  
+  body {
+    font-family: Arial, sans-serif;
+  }
+</style>
+{% endblock %}

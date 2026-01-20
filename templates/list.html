@@ -1,156 +1,291 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="print-header" style="display: none;">
-  <div class="d-flex align-items-center justify-content-center mb-3">
-    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" style="height: 60px; margin-right: 15px;">
-    <div class="text-center">
-      <h4 class="mb-0">ISTA GOMBE-MATADI</h4>
-      <p class="mb-0"><strong>Liste d'appel - {{ room_name }}</strong></p>
-      <p class="mb-0"><small>Session: {{ exam['label'] }} | Période: {{ exam['session_type'] or 'Non définie' }}</small></p>
+
+<!-- En-tête pour impression (caché à l'écran) -->
+<div class="print-header d-print-block d-none">
+  <div style="text-align: center; margin-bottom: 20px;">
+    <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
+      <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" style="height: 60px; margin-right: 15px;">
+      <div>
+        <h4 style="margin: 0;">ISTA GOMBE-MATADI</h4>
+        <p style="margin: 5px 0; font-weight: bold;">Liste des Etudiants - {{ room_name }}</p>
+        <p style="margin: 0; font-size: 12px;">
+          Session: {{ exam['label'] }} | Période: {{ exam['session_type'] or 'Non définie' }} | Date: {{ today }}
+        </p>
+      </div>
     </div>
   </div>
 </div>
-<div class="mb-3">
-  <div class="d-flex justify-content-between align-items-center">
+
+<!-- Contenu principal (visible à l'écran) -->
+<div class="d-print-none">
+  <style>
+    main.container {
+      max-width: 100% !important;
+      padding-left: 15px !important;
+      padding-right: 15px !important;
+    }
+    .mb-4 {
+      display: block !important;
+      width: 100% !important;
+      clear: both !important;
+      float: none !important;
+    }
+    .table-responsive {
+      display: block !important;
+      width: 100% !important;
+      clear: both !important;
+      float: none !important;
+    }
+  </style>
+  <!-- En-tête principal -->
+  <div class="mb-4" style="display: block !important; width: 100% !important; clear: both !important;">
     <div>
-      <h5>Liste d'appel - {{ room_name }}</h5>
-      <p class="text-muted mb-0">
-        <strong>Session:</strong> {{ exam['label'] }} | 
-        <strong>Période:</strong> 
-        {% if exam['session_type'] == 'Matin' %}
-          <span class="badge bg-info text-dark">Matin</span>
-        {% elif exam['session_type'] == 'Après-midi' %}
-          <span class="badge bg-warning text-dark">Après-midi</span>
-        {% else %}
-          {{ exam['session_type'] or 'Non définie' }}
-        {% endif %}
-      </p>
+      <div class="mb-2">
+        <h5>Liste de présence - {{ room_name }}</h5>
+        <p class="text-muted mb-0">
+          <strong>Session:</strong> {{ exam['label'] }} | 
+          <strong>Période:</strong> {{ exam['session_type'] or 'Non définie' }}
+        </p>
+        <p class="text-muted mb-0">
+          <strong>Date d'examen:</strong> {{ today }}
+        </p>
+      </div>
+      <div class="text-end">
+        <div class="btn-group" role="group">
+          <button class="btn btn-outline-secondary" onclick="window.history.back()">Retour</button>
+          <button class="btn btn-success" onclick="alert('Présence enregistrée')">Enregistrer la présence</button>
+          <button class="btn btn-primary" onclick="window.print()">Télécharger</button>
+        </div>
+      </div>
     </div>
-    <button class="btn btn-outline-secondary" onclick="window.print()">Imprimer</button>
+  </div>
+  <br style="clear: both !important;">
+
+  <!-- Tableau des étudiants -->
+  <div class="table-responsive" style="clear: both !important; display: block !important; width: 100% !important;">
+    <table class="table table-bordered table-sm" style="border: 2px solid #000; width: 100% !important;">
+      <thead class="table-light" style="background-color: #f0f0f0;">
+        <tr>
+          <th style="border: 2px solid #000; padding: 8px; text-align: center; font-weight: bold; width: 80px;">Place</th>
+          <th style="border: 2px solid #000; padding: 8px; text-align: center; font-weight: bold;">Nom</th>
+          <th style="border: 2px solid #000; padding: 8px; text-align: center; font-weight: bold;">Promotion</th>
+          <th style="border: 2px solid #000; padding: 8px; text-align: center; font-weight: bold;">Matricule</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+          <tr>
+            <td style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold;">{{ r['seat_number'] }}</td>
+            <td style="border: 1px solid #000; padding: 8px;">{{ r['full_name'] }}</td>
+            <td style="border: 1px solid #000; padding: 8px;">{{ r['promotion_name'] }}</td>
+            <td style="border: 1px solid #000; padding: 8px;">{{ r['matricule'] or '-' }}</td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="4" class="text-center text-muted" style="border: 1px solid #000; padding: 20px;">
+              <i class="fas fa-info-circle"></i> Aucune donnée disponible.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 </div>
+
+<!-- Pied de page pour impression -->
+<div class="print-footer d-print-block d-none">
+  <small>&copy; Janvier 2026 ISTA GOMBE-MATADI - JNC_DispaExam - Version 1.1</small>
+</div>
+
 <style>
+/* Styles pour l'impression */
 @media print {
-  nav, .btn, .alert, footer { display: none !important; }
-  body { 
-    background: white;
-    margin: 0;
-    padding: 10mm;
+  /* Cacher les éléments non désirés */
+  nav, footer, .btn, .alert, .d-print-none {
+    display: none !important;
   }
   
-  table { 
-    page-break-inside: auto;
-    width: 100%;
-    border-collapse: collapse;
+  /* Afficher les éléments d'impression */
+  .print-header, .d-print-block {
+    display: block !important;
+  }
+  
+  /* Réinitialiser les marges */
+  body {
+    margin: 0 !important;
+    padding: 10mm !important;
+    background: white !important;
+    font-size: 11pt !important;
+  }
+  
+  /* En-tête d'impression */
+  .print-header {
+    margin-bottom: 15mm !important;
+    page-break-inside: avoid !important;
+  }
+  
+  /* Styles du tableau à l'impression */
+  .table-responsive {
+    overflow: visible !important;
+  }
+  
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
     border: 2px solid #000 !important;
-    font-size: 11px;
-    margin: 0 auto;
+    font-size: 10pt !important;
+    margin-top: 10mm !important;
+    page-break-inside: auto !important;
   }
   
-  table th, table td {
+  th, td {
     border: 1px solid #000 !important;
-    padding: 6px !important;
-    text-align: left;
-    vertical-align: middle;
+    padding: 6px 8px !important;
+    vertical-align: middle !important;
   }
   
-  table thead th {
+  thead {
+    display: table-header-group !important;
+  }
+  
+  th {
     background-color: #f0f0f0 !important;
-    font-weight: bold;
-    border: 2px solid #000 !important;
-    text-align: center;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    font-weight: bold !important;
+    text-align: center !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   
-  table tbody tr {
-    border-top: 1px solid #000 !important;
-    border-bottom: 1px solid #000 !important;
-    border-left: 1px solid #000 !important;
-    border-right: 1px solid #000 !important;
+  tr {
+    page-break-inside: avoid !important;
+    page-break-after: auto !important;
   }
   
-  table tbody td {
-    border: 1px solid #000 !important;
+  /* Pied de page fixe */
+  .print-footer {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    text-align: center !important;
+    font-size: 8pt !important;
+    color: #666 !important;
+    padding: 5mm !important;
+    background: white !important;
+    border-top: 1px solid #ccc !important;
   }
   
-  table tbody tr td:first-child {
-    border-left: 2px solid #000 !important;
+  /* Espace pour éviter le chevauchement avec le pied de page */
+  body {
+    padding-bottom: 20mm !important;
+  }
+}
+
+/* Styles responsives pour mobile */
+@media screen and (max-width: 768px) {
+  .btn-group-vertical {
+    width: 100%;
   }
   
-  table tbody tr td:last-child {
-    border-right: 2px solid #000 !important;
+  .btn-group-vertical .btn {
+    width: 100%;
+    text-align: left;
   }
   
-  table tbody tr:first-child td {
-    border-top: 2px solid #000 !important;
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
   
-  table tbody tr:last-child td {
-    border-bottom: 2px solid #000 !important;
+  .table {
+    min-width: 600px;
+    font-size: 0.9rem;
   }
   
-  tr { 
-    page-break-inside: avoid; 
-    page-break-after: auto; 
+  .col-md-4.text-md-end {
+    margin-top: 15px;
+  }
+}
+
+@media screen and (max-width: 576px) {
+  .table {
+    min-width: 500px;
+    font-size: 0.85rem;
   }
   
-  thead { 
-    display: table-header-group; 
+  .card-title {
+    font-size: 1.1rem;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .table {
+    min-width: 400px;
+    font-size: 0.8rem;
   }
   
-  tfoot { 
-    display: table-footer-group; 
+  th, td {
+    padding: 4px 6px !important;
+  }
+}
+
+/* Styles généraux pour l'écran */
+@media screen {
+  .print-header, .print-footer {
+    display: none;
   }
   
-  .print-header { 
-    display: block !important; 
-    margin-bottom: 15px;
+  .container-fluid {
+    padding: 15px;
   }
   
-  .d-flex.justify-content-between { 
-    display: none !important; 
+  .card {
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
   
-  .print-footer { 
-    display: block !important; 
-    position: fixed; 
-    bottom: 0; 
-    left: 0; 
-    right: 0; 
-    text-align: center; 
-    font-size: 10px; 
-    color: #666; 
-    padding: 10px; 
+  .table {
+    margin-top: 0;
+    background-color: white;
+  }
+  
+  .table th {
+    background-color: #f8f9fa;
   }
 }
 </style>
-<table class="table table-bordered table-sm" style="border: 2px solid #000;">
-  <thead class="table-light" style="background-color: #f0f0f0;">
-    <tr>
-      <th style="border: 2px solid #000; padding: 6px; text-align: center; font-weight: bold;">Place</th>
-      <th style="border: 2px solid #000; padding: 6px; text-align: center; font-weight: bold;">Nom</th>
-      <th style="border: 2px solid #000; padding: 6px; text-align: center; font-weight: bold;">Promotion</th>
-      <th style="border: 2px solid #000; padding: 6px; text-align: center; font-weight: bold;">Matricule</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for r in rows %}
-      <tr>
-        <td style="border: 1px solid #000; padding: 6px; text-align: center; font-weight: bold;">{{ r['seat_number'] }}</td>
-        <td style="border: 1px solid #000; padding: 6px;">{{ r['full_name'] }}</td>
-        <td style="border: 1px solid #000; padding: 6px;">{{ r['promotion_name'] }}</td>
-        <td style="border: 1px solid #000; padding: 6px;">{{ r['matricule'] or '-' }}</td>
-      </tr>
-    {% else %}
-      <tr>
-        <td colspan="4" class="text-center text-muted" style="border: 1px solid #000; padding: 10px;">Aucune donnée.</td>
-      </tr>
-    {% endfor %}
-  </tbody>
-</table>
-<div class="print-footer" style="display: none;">
-  <small>&copy; Décembre 2025 ISTA GOMBE-MATADI - JNC_DispaExam - Version 1.1</small>
-</div>
-{% endblock %}
 
+<script>
+// Script pour améliorer l'impression
+document.addEventListener('DOMContentLoaded', function() {
+  // Assurer que les images sont chargées avant l'impression
+  const printBtn = document.querySelector('.btn-primary');
+  if (printBtn) {
+    printBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      
+      // Vérifier si le logo est chargé
+      const logo = document.querySelector('.print-header img');
+      if (logo && !logo.complete) {
+        logo.onload = function() {
+          setTimeout(function() {
+            window.print();
+          }, 500);
+        };
+      } else {
+        setTimeout(function() {
+          window.print();
+        }, 500);
+      }
+    });
+  }
+  
+  // Ajouter des tooltips aux boutons
+  const buttons = document.querySelectorAll('.btn');
+  buttons.forEach(btn => {
+    btn.setAttribute('title', btn.textContent.trim());
+  });
+});
+</script>
+{% endblock %}

@@ -11,10 +11,10 @@
               <strong>Examen :</strong> {{ archive_info.exam_label }} 
               ({{ archive_info.exam_session_type or 'Non définie' }}) | 
               <strong>Période :</strong> {{ archive_info.period_start }} - {{ archive_info.period_end }} | 
-              <strong>Total :</strong> {{ archive_info.count }} affectations
+              <strong>Total :</strong> <span class="badge bg-primary">{{ archive_info.count }}</span> affectations
             </p>
           </div>
-          <a href="{{ url_for('view_archives') }}" class="btn btn-outline-secondary">← Retour aux archives</a>
+          <a href="{{ url_for('view_archives') }}" class="btn btn-outline-secondary">← Retour</a>
         </div>
       </div>
     </div>
@@ -58,15 +58,12 @@
         </div>
         
         <div class="mt-3">
-          <a href="{{ url_for('view_archives') }}" class="btn btn-secondary">Retour aux archives</a>
+          <a href="{{ url_for('view_archives') }}" class="btn btn-secondary">↩️ Retour aux archives</a>
         </div>
       </div>
     </div>
   </div>
 </div>
 {% endblock %}
-
-
-
 
 
