@@ -259,10 +259,238 @@ def init_db():
         print(f"Migration assignment_archives warning: {e}")
         pass
     
-    conn.commit()
-    conn.close()
-
-
-
-
-
+    # Migration: ajouter la colonne scanned_by à la table presence
+    try:
+        cur.execute("PRAGMA table_info(presence)")
+        columns = [row[1] for row in cur.fetchall()]
+        if "scanned_by" not in columns:
+            cur.execute("ALTER TABLE presence ADD COLUMN scanned_by INTEGER")
+            cur.execute("ALTER TABLE presence ADD COLUMN scan_date TEXT")
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS idx_presence_scanned_by 
+                ON presence(scanned_by)
+            """)
+            conn.commit()
+            print("Migration: colonne scanned_by ajoutée à la table presence")
+    except sqlite3.OperationalError as e:
+        print(f"Migration presence scanned_by warning: {e}")
+        pass
+    
+    # Migration: créer la table supervisor_assignments pour associer les surveillants aux locaux
+    try:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS supervisor_assignments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                exam_id INTEGER NOT NULL,
+                room_id INTEGER NOT NULL,
+                exam_date TEXT,
+                is_room_leader INTEGER NOT NULL DEFAULT 0,
+                assigned_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, exam_id, room_id, exam_date),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE,
+                FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
+            )
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_supervisor_assignments_user_exam 
+            ON supervisor_assignments(user_id, exam_id)
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_supervisor_assignments_exam_date 
+            ON supervisor_assignments(exam_date, room_id)
+        """)
+        conn.commit()
+        print("Migration: table supervisor_assignments créée")
+    except sqlite3.OperationalError as e:
+        # La table existe peut-être déjà, essayons d'ajouter la colonne exam_date et is_room_leader
+        try:
+            cur.execute("PRAGMA table_info(supervisor_assignments)")
+            columns = [row[1] for row in cur.fetchall()]
+            if "exam_date" not in columns:
+                cur.execute("ALTER TABLE supervisor_assignments ADD COLUMN exam_date TEXT")
+                # Migrer les données existantes : utiliser assigned_at[:10] comme exam_date
+                cur.execute("""
+                    UPDATE supervisor_assignments 
+                    SET exam_date = SUBSTR(assigned_at, 1, 10)
+                    WHERE exam_date IS NULL
+                """)
+                # Modifier l'unicité (SQLite ne supporte pas directement ALTER UNIQUE)
+                # On laisse juste la colonne pour compatibilité
+                cur.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_supervisor_assignments_exam_date 
+                    ON supervisor_assignments(exam_date, room_id)
+                """)
+                conn.commit()
+                print("Migration: colonne exam_date ajoutée à supervisor_assignments")
+            
+            if "is_room_leader" not in columns:
+                cur.execute("ALTER TABLE supervisor_assignments ADD COLUMN is_room_leader INTEGER NOT NULL DEFAULT 0")
+                conn.commit()
+                print("Migration: colonne is_room_leader ajoutée à supervisor_assignments")
+        except Exception as e2:
+            print(f"Migration exam_date/is_room_leader warning: {e2}")
+    
+    # Migration: ajouter is_room_leader si elle n'existe pas
+    try:
+        cur.execute("ALTER TABLE supervisor_assignments ADD COLUMN is_room_leader INTEGER NOT NULL DEFAULT 0")
+        conn.commit()
+        print("Migration: colonne is_room_leader ajoutée à supervisor_assignments")
+    except sqlite3.OperationalError:
+        # La colonne existe déjà
+        pass
+    
+    # Créer la table d'archives pour les surveillants
+    try:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS supervisor_archives (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                archive_name TEXT NOT NULL,
+                exam_date TEXT NOT NULL,
+                user_id INTEGER NOT NULL,
+                username TEXT NOT NULL,
+                exam_id INTEGER,
+                exam_label TEXT,
+                room_id INTEGER NOT NULL,
+                room_name TEXT NOT NULL,
+                is_room_leader INTEGER NOT NULL DEFAULT 0,
+                archived_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                archived_by INTEGER NOT NULL,
+                FOREIGN KEY (archived_by) REFERENCES users(id)
+            )
+        """)
+        conn.commit()
+        print("Migration: table supervisor_archives créée")
+    except sqlite3.OperationalError as e:
+        print(f"Migration warning supervisor_archives: {e}")
+        pass
+    
+    # Migration: créer la table messages pour la messagerie surveillant-admin
+    try:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sender_id INTEGER NOT NULL,
+                recipient_id INTEGER,
+                subject TEXT NOT NULL,
+                message TEXT NOT NULL,
+                exam_id INTEGER,
+                room_id INTEGER,
+                is_read INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE SET NULL,
+                FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE SET NULL,
+                FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE SET NULL
+            )
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_messages_sender 
+            ON messages(sender_id)
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_messages_recipient 
+            ON messages(recipient_id)
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_messages_created_at 
+            ON messages(created_at DESC)
+        """)
+        conn.commit()
+        print("Migration: table messages créée pour la messagerie")
+    except sqlite3.OperationalError as e:
+        print(f"Migration messages warning: {e}")
+        pass
+    
+    # Migration: créer la table notifications pour les notifications en temps réel
+    try:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS notifications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                message TEXT NOT NULL,
+                is_read INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_notifications_user 
+            ON notifications(user_id)
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_notifications_created_at 
+            ON notifications(created_at DESC)
+        """)
+        conn.commit()
+        print("Migration: table notifications créée pour les notifications")
+    except sqlite3.OperationalError as e:
+        print(f"Migration notifications warning: {e}")
+        pass
+    
+    # Migration: créer la table payment_rates pour les tarifs de paiement
+    try:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS payment_rates (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                rate_type TEXT NOT NULL CHECK (rate_type IN ('daily', 'session')),
+                amount REAL NOT NULL,
+                currency TEXT NOT NULL DEFAULT 'CDF',
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_payment_rates_active 
+            ON payment_rates(is_active)
+        """)
+        conn.commit()
+        print("Migration: table payment_rates créée pour les tarifs de paiement")
+    except sqlite3.OperationalError as e:
+        print(f"Migration payment_rates warning: {e}")
+        pass
+    
+    # Migration: créer la table calculated_payments pour l'historique des paiements calculés
+    try:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS calculated_payments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                supervisor_id INTEGER NOT NULL,
+                exam_id INTEGER,
+                start_date TEXT NOT NULL,
+                end_date TEXT NOT NULL,
+                total_sessions INTEGER NOT NULL DEFAULT 0,
+                total_days INTEGER NOT NULL DEFAULT 0,
+                rate_id INTEGER NOT NULL,
+                amount_per_session REAL NOT NULL DEFAULT 0,
+                amount_per_day REAL NOT NULL DEFAULT 0,
+                total_amount REAL NOT NULL DEFAULT 0,
+                currency TEXT NOT NULL DEFAULT 'CDF',
+                calculated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                status TEXT NOT NULL DEFAULT 'calculated' CHECK (status IN ('calculated', 'paid', 'cancelled')),
+                notes TEXT,
+                FOREIGN KEY (supervisor_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE SET NULL,
+                FOREIGN KEY (rate_id) REFERENCES payment_rates(id) ON DELETE CASCADE
+            )
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_calculated_payments_supervisor 
+            ON calculated_payments(supervisor_id)
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_calculated_payments_dates 
+            ON calculated_payments(start_date, end_date)
+        """)
+        cur.execute("""
+            CREATE INDEX IF NOT EXISTS idx_calculated_payments_status 
+            ON calculated_payments(status)
+        """)
+        conn.commit()
+        print("Migration: table calculated_payments créée pour l'historique des paiements")
+    except sqlite3.OperationalError as e:
+        print(f"Migration calculated_payments warning: {e}")
+        pass
